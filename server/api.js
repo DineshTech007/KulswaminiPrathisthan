@@ -745,7 +745,7 @@ app.post('/api/upload-image', requireAdmin, upload.single('image'), async (req, 
 });
 
 const PORT = process.env.PORT || 3001;
-
+ 
 if (!process.env.VERCEL) {
   app.listen(PORT, () => {
     console.log(`API server running on http://localhost:${PORT}`);
