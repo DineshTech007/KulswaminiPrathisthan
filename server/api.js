@@ -574,11 +574,6 @@ app.delete('/api/events/:id', requireManagerOrAdmin, async (req, res) => {
   }
 });
 
-// Catch-all for unknown API routes
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: 'API endpoint not found' });
-});
-
 // Remove child endpoint (admin only)
 app.post('/api/remove-child', requireAdmin, async (req, res) => {
   try {
@@ -710,6 +705,11 @@ app.post('/api/upload-image', requireAdmin, async (req, res) => {
     console.error('Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
   }
+});
+
+// Catch-all for unknown API routes (MUST be last!)
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
 });
 
 // Start the Express server
