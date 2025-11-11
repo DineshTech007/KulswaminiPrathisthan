@@ -3,7 +3,7 @@ import BrandHeader from '../components/BrandHeader.jsx';
 import WaIcon from '../components/WaIcon.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
-import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl, uploadImageFile } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const birthdayTerms = ['birthday', 'birth day', 'जन्मदिन', 'जन्मदिवस', 'वाढदिवस'];
@@ -281,7 +281,6 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                     className="event-edit-form"
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      const fd = new FormData();
                       const title = e.currentTarget.elements.title.value.trim();
                       const date = e.currentTarget.elements.date.value.trim();
                       const time = e.currentTarget.elements.time.value.trim();
@@ -289,16 +288,22 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                       const description = e.currentTarget.elements.description.value.trim();
                       const link = e.currentTarget.elements.link.value.trim();
                       if (!title || !date) { alert('Title and Date required'); return; }
-                      fd.append('title', title);
-                      fd.append('date', date);
-                      fd.append('time', time);
-                      fd.append('location', location);
-                      fd.append('description', description);
-                      fd.append('link', link);
-                      const imageFile = e.currentTarget.elements.image?.files?.[0];
-                      if (imageFile) fd.append('image', imageFile);
+                      
                       try {
-                        const res = await apiFetch(`/api/events/${item.id}`, { method: 'PATCH', headers: { 'X-Admin-Token': token }, body: fd });
+                        let imageUrl = item.imageUrl || '';
+                        const imageFile = e.currentTarget.elements.image?.files?.[0];
+                        if (imageFile) {
+                          imageUrl = await uploadImageFile(imageFile, { token, folder: 'events' });
+                        }
+                        
+                        const res = await apiFetch(`/api/events/${item.id}`, {
+                          method: 'PATCH',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'X-Admin-Token': token
+                          },
+                          body: JSON.stringify({ title, date, time, location, description, link, imageUrl })
+                        });
                         const j = await res.json();
                         if (res.ok) {
                           setEvents(list => list.map(x => x.id === item.id ? { ...x, ...j.item, __editing: false } : x));
@@ -308,7 +313,7 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                           console.error('Edit failed:', errorMsg);
                         }
                       } catch (err) {
-                        alert('An unexpected error occurred during edit.');
+                        alert(err.message || 'An unexpected error occurred during edit.');
                         console.error('Edit submission error:', err);
                       }
                     }}
