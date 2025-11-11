@@ -1,0 +1,12 @@
+# Android / Capacitor
+android/
+.idea/
+*.iml
+*.apk
+*.aab
+*.keystore
+local.properties
+
+# Capacitor
+capacitor-cordova-android-plugins/
+.capacitor/

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">कुलस्वामिनी प्रतिष्ठान</string>
+    <string name="title_activity_main">कुलस्वामिनी प्रतिष्ठान</string>
+    <string name="package_name">com.kulswamini.prathisthan</string>
+    <string name="custom_url_scheme">com.kulswamini.prathisthan</string>
+</resources>
