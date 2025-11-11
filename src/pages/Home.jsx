@@ -7,7 +7,7 @@ const Home = () => {
   const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [site, setSite] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान', faviconDataUrl: '' });
+  const [site, setSite] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -43,7 +43,7 @@ const Home = () => {
         const r = await fetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
         const j = await r.json();
         if (!cancelled && r.ok) {
-          setSite({ title: j.settings?.title || 'कुलस्वामिनी प्रतिष्ठान', faviconDataUrl: j.settings?.faviconDataUrl || '' });
+          setSite({ title: j.settings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: j.settings?.faviconDataUrl || '' });
         }
       } catch {
         // ignore

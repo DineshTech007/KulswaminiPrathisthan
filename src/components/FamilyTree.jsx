@@ -208,7 +208,7 @@ const clampLayoutDimensions = (layout) => {
   };
 };
 
-const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onLoginSuccess, onLogout, siteTitle = 'कुलस्वामिनी प्रतिष्ठान', siteFavicon = '', onSettingsUpdated, onToggleSidebar, role }) => {
+const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onLoginSuccess, onLogout, siteTitle = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', siteFavicon = '', onSettingsUpdated, onToggleSidebar, role }) => {
   const containerRef = useRef(null);
   const canvasRef = useRef(null);
 

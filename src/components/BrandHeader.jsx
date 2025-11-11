@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/family-tree.css';
 
-const BrandHeader = ({ title = 'कुलस्वामिनी प्रतिष्ठान', icon = '', right = null }) => {
+const BrandHeader = ({ title = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', icon = '', right = null }) => {
   return (
     <header className="tree-header">
       <div style={{display:'flex', alignItems:'center', gap:12}}>

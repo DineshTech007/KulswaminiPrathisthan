@@ -44,7 +44,7 @@ class ErrorBoundary extends React.Component {
 
 const App = () => {
   const [treeData, setTreeData] = useState([]);
-  const [siteSettings, setSiteSettings] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान', faviconDataUrl: '' });
+  const [siteSettings, setSiteSettings] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('adminToken') || '');
@@ -74,7 +74,7 @@ const App = () => {
       if (!res.ok) throw new Error(json.error || 'Failed to load settings');
       const settings = json.settings || {};
       setSiteSettings({
-        title: settings.title || 'कुलस्वामिनी प्रतिष्ठान',
+        title: settings.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी ',
         faviconDataUrl: settings.faviconDataUrl || '',
       });
     } catch (err) {
@@ -211,7 +211,7 @@ const App = () => {
                   adminToken={adminToken}
                   onLoginSuccess={handleLoginSuccess}
                   onLogout={handleLogout}
-                  siteTitle={siteSettings?.title || 'कुलस्वामिनी प्रतिष्ठान'}
+                  siteTitle={siteSettings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी '}
                   siteFavicon={siteSettings?.faviconDataUrl || ''}
                   onSettingsUpdated={fetchSettings}
                   onToggleSidebar={() => setSidebarOpen(o => !o)}
