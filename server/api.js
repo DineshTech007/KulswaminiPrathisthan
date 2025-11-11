@@ -4,6 +4,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
+import sharp from 'sharp';
 import { v2 as cloudinary } from 'cloudinary';
 import { randomUUID, scryptSync, timingSafeEqual } from 'crypto';
 
@@ -51,6 +52,43 @@ const DATA_FILE_PATH = path.join(__dirname, '../assets/data/data.js');
 const SITE_FILE_PATH = path.join(__dirname, '../assets/data/site.json');
 const NEWS_FILE_PATH = path.join(__dirname, '../assets/data/news.json');
 const EVENTS_FILE_PATH = path.join(__dirname, '../assets/data/events.json');
+
+// Compress image based on type
+async function compressImage(buffer, type = 'photo') {
+  const sharpInstance = sharp(buffer);
+  
+  // Get image metadata
+  const metadata = await sharpInstance.metadata();
+  console.log(`📊 Original image: ${metadata.width}x${metadata.height}, format: ${metadata.format}`);
+  
+  if (type === 'icon' || type === 'site') {
+    // Icons: smaller size, PNG for transparency support
+    return await sharpInstance
+      .resize(512, 512, { 
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .png({ 
+        quality: 85,
+        compressionLevel: 9,
+        adaptiveFiltering: true
+      })
+      .toBuffer();
+  } else {
+    // Photos: larger size, JPEG for better compression
+    return await sharpInstance
+      .resize(1200, 1200, { 
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ 
+        quality: 80,
+        progressive: true,
+        mozjpeg: true
+      })
+      .toBuffer();
+  }
+}
 
 const uploadBufferToCloudinary = (buffer, options = {}) => new Promise((resolve, reject) => {
   if (!buffer) {
@@ -182,13 +220,33 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
     const folderInput = req.body?.folder;
     const folder = typeof folderInput === 'string' && folderInput.trim() ? folderInput.trim() : 'members';
     
-    console.log(`📤 Uploading ${req.file.originalname} to Cloudinary folder: ${folder}`);
+    const originalSize = req.file.size;
+    console.log(`📤 Original image: ${req.file.originalname} (${(originalSize / 1024).toFixed(2)} KB)`);
     
-    const result = await uploadBufferToCloudinary(req.file.buffer, { folder });
+    // Determine image type based on folder
+    const imageType = (folder === 'site' || folder === 'icons') ? 'icon' : 'photo';
+    
+    // Compress image using Sharp
+    console.log(`🗜️  Compressing ${imageType}...`);
+    const compressedBuffer = await compressImage(req.file.buffer, imageType);
+    
+    const compressedSize = compressedBuffer.length;
+    const savedPercent = ((1 - compressedSize / originalSize) * 100).toFixed(1);
+    console.log(`✅ Compressed: ${(compressedSize / 1024).toFixed(2)} KB (saved ${savedPercent}%)`);
+    
+    console.log(`📤 Uploading to Cloudinary folder: ${folder}`);
+    
+    const result = await uploadBufferToCloudinary(compressedBuffer, { folder });
     
     console.log(`✅ Cloudinary upload success: ${result.secure_url}`);
     
-    return res.json({ url: result.secure_url, public_id: result.public_id });
+    return res.json({ 
+      url: result.secure_url, 
+      public_id: result.public_id,
+      originalSize,
+      compressedSize,
+      savedPercent: parseFloat(savedPercent)
+    });
   } catch (error) {
     console.error('❌ Cloudinary upload failed:', error);
     return res.status(500).json({ error: 'Image upload failed' });
