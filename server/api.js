@@ -172,15 +172,25 @@ app.post('/api/logout', (req, res) => {
 
 app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
   try {
+    console.log('☁️  Cloudinary upload request received');
+    
     if (!req.file) {
+      console.error('❌ No file provided');
       return res.status(400).json({ error: 'Image file is required' });
     }
+    
     const folderInput = req.body?.folder;
     const folder = typeof folderInput === 'string' && folderInput.trim() ? folderInput.trim() : 'members';
+    
+    console.log(`📤 Uploading ${req.file.originalname} to Cloudinary folder: ${folder}`);
+    
     const result = await uploadBufferToCloudinary(req.file.buffer, { folder });
+    
+    console.log(`✅ Cloudinary upload success: ${result.secure_url}`);
+    
     return res.json({ url: result.secure_url, public_id: result.public_id });
   } catch (error) {
-    console.error('Cloudinary upload failed:', error);
+    console.error('❌ Cloudinary upload failed:', error);
     return res.status(500).json({ error: 'Image upload failed' });
   }
 });
@@ -674,11 +684,15 @@ app.post('/api/update-member', requireAdmin, async (req, res) => {
 // Upload image endpoint (admin only)
 app.post('/api/upload-image', requireAdmin, async (req, res) => {
   try {
+    console.log('📸 Upload image request received:', { body: req.body });
+    
     const { memberId, imageUrl } = req.body || {};
     if (!memberId) {
+      console.error('❌ Missing memberId');
       return res.status(400).json({ error: 'Member ID is required' });
     }
     if (!imageUrl || typeof imageUrl !== 'string') {
+      console.error('❌ Missing or invalid imageUrl');
       return res.status(400).json({ error: 'Image URL is required' });
     }
 
@@ -687,8 +701,11 @@ app.post('/api/upload-image', requireAdmin, async (req, res) => {
     const member = data.find(m => m.id === memberId);
     
     if (!member) {
+      console.error('❌ Member not found:', memberId);
       return res.status(404).json({ error: 'Member not found' });
     }
+
+    console.log('📝 Member found:', member.name, 'Old notes:', member.notes);
 
     // Remove old image URL from notes if exists
     let notes = member.notes || '';
@@ -697,12 +714,15 @@ app.post('/api/upload-image', requireAdmin, async (req, res) => {
     // Add new image URL
     member.notes = notes ? `${notes} | Image: ${imageUrl}` : `Image: ${imageUrl}`;
 
+    console.log('📝 New notes:', member.notes);
+
     // Write updated data
     await writeData(data);
 
+    console.log('✅ Image uploaded successfully for member:', member.name);
     res.json({ success: true, imageUrl, member });
   } catch (error) {
-    console.error('Error uploading image:', error);
+    console.error('❌ Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
   }
 });
