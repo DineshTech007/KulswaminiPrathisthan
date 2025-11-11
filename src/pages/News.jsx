@@ -3,6 +3,7 @@ import BrandHeader from '../components/BrandHeader.jsx';
 import WaIcon from '../components/WaIcon.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 
 const birthdayTerms = ['birthday', 'birth day', 'जन्मदिन', 'जन्मदिवस', 'वाढदिवस'];
 const anniversaryTerms = ['anniversary', 'वर्धापनदिन', 'स्मृतिदिन'];
@@ -142,7 +143,7 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
+  const res = await apiFetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
         const json = await res.json();
         if (!cancelled && res.ok) {
           const items = Array.isArray(json.items) ? json.items : [];
@@ -158,7 +159,7 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
+  const r = await apiFetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
         const j = await r.json();
         if (!cancelled && r.ok) setSite({ title: j.settings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: j.settings?.faviconDataUrl || '' });
       } catch { /* ignore */ }
@@ -279,7 +280,7 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
                       const imageFile = e.currentTarget.elements.image?.files?.[0];
                       if (imageFile) fd.append('image', imageFile);
                       try {
-                        const res = await fetch(`/api/news/${item.id}`, { method: 'PATCH', headers: { 'X-Admin-Token': token }, body: fd });
+                        const res = await apiFetch(`/api/news/${item.id}`, { method: 'PATCH', headers: { 'X-Admin-Token': token }, body: fd });
                         const j = await res.json();
                         if (res.ok) {
                           setNews(list => list.map(x => x.id === item.id ? { ...x, ...j.item, __editing: false } : x));
@@ -358,9 +359,9 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
                             onClick={async () => {
                               if (!confirm('Delete this news item?')) return;
                               try {
-                                const res = await fetch(`/api/news/${item.id}`, { method: 'DELETE', headers: { 'X-Admin-Token': token } });
+                                const res = await apiFetch(`/api/news/${item.id}`, { method: 'DELETE', headers: { 'X-Admin-Token': token } });
                                 if (res.ok) {
-                                  const r = await fetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
+                                  const r = await apiFetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
                                   const j = await r.json();
                                   if (r.ok) setNews(Array.isArray(j.items) ? j.items : []);
                                   else setNews(arr => arr.filter(x => x.id !== item.id));

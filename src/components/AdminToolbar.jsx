@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const AdminToolbar = ({ isAdmin, token, onLoginSuccess, onLogout, role }) => {
@@ -15,7 +16,7 @@ const AdminToolbar = ({ isAdmin, token, onLoginSuccess, onLogout, role }) => {
       if (!token) return;
       setChecking(true);
       try {
-        const res = await fetch('/api/session', { headers: { 'x-admin-token': token } });
+        const res = await apiFetch('/api/session', { headers: { 'x-admin-token': token } });
         const json = await res.json();
         if (!cancelled && (!json.role || json.role === null)) {
           onLogout();
@@ -34,7 +35,7 @@ const AdminToolbar = ({ isAdmin, token, onLoginSuccess, onLogout, role }) => {
     e.preventDefault();
     setError(null);
     try {
-      const res = await fetch('/api/login', {
+      const res = await apiFetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
@@ -54,7 +55,7 @@ const AdminToolbar = ({ isAdmin, token, onLoginSuccess, onLogout, role }) => {
 
   const handleLogout = async () => {
     try {
-      await fetch('/api/logout', { method: 'POST', headers: { 'x-admin-token': token } });
+      await apiFetch('/api/logout', { method: 'POST', headers: { 'x-admin-token': token } });
     } catch (err) {
       console.error('Logout error:', err);
     }

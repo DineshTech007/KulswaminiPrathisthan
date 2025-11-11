@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import BrandHeader from '../components/BrandHeader.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 
 const Home = () => {
   const [news, setNews] = useState([]);
@@ -16,8 +17,8 @@ const Home = () => {
     (async () => {
       try {
         const [nr, er] = await Promise.all([
-          fetch('/api/news', { headers: { 'Cache-Control': 'no-store' } }),
-          fetch('/api/events', { headers: { 'Cache-Control': 'no-store' } })
+          apiFetch('/api/news', { headers: { 'Cache-Control': 'no-store' } }),
+          apiFetch('/api/events', { headers: { 'Cache-Control': 'no-store' } })
         ]);
         const nj = await nr.json();
         const ej = await er.json();
@@ -40,7 +41,7 @@ const Home = () => {
     let cancelled = false;
     (async () => {
       try {
-        const r = await fetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
+  const r = await apiFetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
         const j = await r.json();
         if (!cancelled && r.ok) {
           setSite({ title: j.settings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: j.settings?.faviconDataUrl || '' });

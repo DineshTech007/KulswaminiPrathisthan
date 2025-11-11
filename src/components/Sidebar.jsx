@@ -4,6 +4,7 @@ import AdminToolbar from './AdminToolbar.jsx';
 import WaIcon from './WaIcon.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = '', onLoginSuccess, onLogout }) => {
@@ -31,7 +32,7 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
   useEffect(() => {
     const fetchNews = async () => {
       try {
-        const res = await fetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
+        const res = await apiFetch('/api/news', { headers: { 'Cache-Control': 'no-store' } });
         const json = await res.json();
         if (res.ok) setNews(Array.isArray(json.items) ? json.items.slice(0, 5) : []);
       } catch (err) {
@@ -40,7 +41,7 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
     };
     const fetchEvents = async () => {
       try {
-        const res = await fetch('/api/events', { headers: { 'Cache-Control': 'no-store' } });
+        const res = await apiFetch('/api/events', { headers: { 'Cache-Control': 'no-store' } });
         const json = await res.json();
         if (res.ok) setEvents(Array.isArray(json.items) ? json.items.slice(0, 5) : []);
       } catch (err) {
@@ -130,13 +131,13 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     if (e.currentTarget.elements.newsImage?.files?.[0]) {
                       fd.append('image', e.currentTarget.elements.newsImage.files[0]);
                     }
-                    const res = await fetch('/api/news', { method: 'POST', headers: { 'X-Admin-Token': token }, body: fd });
+                    const res = await apiFetch('/api/news', { method: 'POST', headers: { 'X-Admin-Token': token }, body: fd });
                     const json = await res.json();
                     if (res.ok) {
                       setNewsForm({ title: '', date: '', summary: '', link: '' });
                       setAdding(a => ({ ...a, news: false }));
                       // refresh
-                      const r = await fetch('/api/news');
+                      const r = await apiFetch('/api/news');
                       const j = await r.json();
                       if (r.ok) setNews(Array.isArray(j.items) ? j.items.slice(0,5) : []);
                     } else {

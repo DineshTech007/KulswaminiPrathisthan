@@ -1,4 +1,5 @@
 import express from 'express';
+import cors from 'cors';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,11 +11,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
 // Ensure images directory exists
 const IMAGES_DIR = path.join(__dirname, '../assets/images');
-await fs.mkdir(IMAGES_DIR, { recursive: true });
+try {
+  await fs.mkdir(IMAGES_DIR, { recursive: true });
+} catch (err) {
+  if (err?.code !== 'EEXIST') {
+    console.warn('Unable to ensure images directory:', err?.message || err);
+  }
+}
 
 // Serve static images
 app.use('/assets/images', express.static(IMAGES_DIR));
@@ -117,6 +125,10 @@ app.post('/api/login', (req, res) => {
   if (!role) return res.status(401).json({ error: 'Invalid credentials' });
   const token = issueToken(role);
   return res.json({ success: true, token, role, expiresIn: TOKEN_TTL_MS / 1000 });
+});
+
+app.get('/api/hello', (req, res) => {
+  res.json({ message: 'Hello from Express API!' });
 });
 
 // Validate current session
@@ -386,7 +398,6 @@ app.get('/api/events', async (req, res) => {
 });
 
 // Upload site icon (admin) - saves optimized PNG and updates settings
-import { createWriteStream } from 'fs';
 app.post('/api/upload-site-icon', requireAdmin, upload.single('icon'), async (req, res) => {
   try {
     if (!req.file) {
@@ -584,6 +595,11 @@ app.delete('/api/events/:id', requireManagerOrAdmin, async (req, res) => {
   }
 });
 
+// Catch-all for unknown API routes
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
 // Remove child endpoint (admin only)
 app.post('/api/remove-child', requireAdmin, async (req, res) => {
   try {
@@ -737,7 +753,8 @@ app.post('/api/upload-image', requireAdmin, upload.single('image'), async (req, 
   }
 });
 
-const PORT = 3001;
+// Start the Express server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`API server running on http://localhost:${PORT}`);
+  console.log(`API server running on port ${PORT}`);
 });

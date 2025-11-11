@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 
 const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild, onUpdateMember, allMembers, isAdmin = false, adminToken = '' }) => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -235,7 +236,7 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
       formData.append('image', file);
       formData.append('memberId', member.id);
 
-      const response = await fetch('/api/upload-image', {
+      const response = await apiFetch('/api/upload-image', {
         method: 'POST',
         headers: { 'X-Admin-Token': adminToken },
         body: formData,

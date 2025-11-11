@@ -4,6 +4,7 @@ import AdminToolbar from './AdminToolbar.jsx';
 import MemberDetailModal from './MemberDetailModal.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useLanguage, useTranslation } from '../context/LanguageContext.jsx';
+import { apiFetch } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const NODE_WIDTH = 160;
@@ -461,7 +462,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   const handleAddChild = async (parentMember, childData) => {
     if (!isAdmin) { alert('Admin login required to add child'); return; }
     try {
-      const response = await fetch('/api/add-child', {
+      const response = await apiFetch('/api/add-child', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
         body: JSON.stringify({ parentId: parentMember.id, childData }),
@@ -489,7 +490,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     if (!isAdmin) { alert('Admin login required to remove child'); return; }
     if (!confirm('Are you sure you want to remove this child?')) return;
     try {
-      const response = await fetch('/api/remove-child', {
+      const response = await apiFetch('/api/remove-child', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
         body: JSON.stringify({ parentId, childId }),
@@ -517,7 +518,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     if (!isAdmin) { alert('Admin login required to edit'); return; }
     try {
       console.log('Sending update to API:', { memberId, updatedData });
-      const response = await fetch('/api/update-member', {
+      const response = await apiFetch('/api/update-member', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
         body: JSON.stringify({ memberId, updatedData }),
@@ -670,7 +671,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                     title={t('family.editTitle')}
                   onClick={() => {
                     const newTitle = prompt('Enter site title', siteTitle) || siteTitle;
-                    fetch('/api/settings', {
+                    apiFetch('/api/settings', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
                       body: JSON.stringify({ title: newTitle, faviconDataUrl: siteFavicon })
@@ -692,7 +693,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                     const form = new FormData();
                     form.append('icon', file);
                     try {
-                      const res = await fetch('/api/upload-site-icon', { method: 'POST', headers: { 'X-Admin-Token': adminToken }, body: form });
+                      const res = await apiFetch('/api/upload-site-icon', { method: 'POST', headers: { 'X-Admin-Token': adminToken }, body: form });
                       const json = await res.json();
                       if (res.ok) {
                         alert('Icon updated');

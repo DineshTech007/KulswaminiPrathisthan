@@ -4,6 +4,7 @@ import FamilyTree from './components/FamilyTree.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import News from './pages/News.jsx';
 import Events from './pages/Events.jsx';
+import { apiFetch } from './utils/apiClient.js';
 import Home from './pages/Home.jsx';
 import { useTranslation } from './context/LanguageContext.jsx';
 
@@ -57,7 +58,7 @@ const App = () => {
   const fetchData = useCallback(async () => {
     try {
       setError(null);
-      const res = await fetch('/api/data', { headers: { 'Cache-Control': 'no-store' } });
+      const res = await apiFetch('/api/data', { headers: { 'Cache-Control': 'no-store' } });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load data');
       setTreeData(json.data || []);
@@ -69,7 +70,7 @@ const App = () => {
 
   const fetchSettings = useCallback(async () => {
     try {
-      const res = await fetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
+      const res = await apiFetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load settings');
       const settings = json.settings || {};
@@ -86,7 +87,7 @@ const App = () => {
   const checkSession = useCallback(async (token) => {
     if (!token) { setUserRole(''); return; }
     try {
-      const res = await fetch('/api/session', { headers: { 'x-admin-token': token } });
+      const res = await apiFetch('/api/session', { headers: { 'x-admin-token': token } });
       const json = await res.json();
       if (!json.role) {
         localStorage.removeItem('adminToken');

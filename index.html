@@ -11,40 +11,49 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
-    <script src="https://www.google.com/jsapi"></script>
+    <script src="https://www.gstatic.com/inputtools/js/ln/1516c35621de2a4063a086ac7d1911b4d.js"></script>
     <script>
-      google.load("elements", "1", {
-        packages: "transliteration"
-      });
-      
-      function onLoad() {
-        var options = {
-          sourceLanguage: 'en',
-          destinationLanguage: ['mr'],
-          shortcutKey: 'ctrl+g',
-          transliterationEnabled: true
-        };
-        
-        var control = new google.elements.transliteration.TransliterationControl(options);
-        
-        // Enable transliteration for search inputs
-        setTimeout(function() {
-          var searchInputs = document.querySelectorAll('input.search-input, input[lang="mr"]');
-          if (searchInputs.length > 0) {
-            control.makeTransliteratable(Array.from(searchInputs));
-          }
-        }, 1000);
-        
-        // Re-enable for dynamically added inputs
-        setInterval(function() {
-          var searchInputs = document.querySelectorAll('input.search-input, input[lang="mr"]');
-          if (searchInputs.length > 0) {
-            control.makeTransliteratable(Array.from(searchInputs));
-          }
-        }, 2000);
+      if (window.google?.load) {
+        google.load('inputtools', '1', {
+          packages: ['transliteration']
+        });
       }
-      
-      google.setOnLoadCallback(onLoad);
+
+      function enableTransliteration(control) {
+        const selectors = 'input.search-input, input[lang="mr"]';
+        const inputs = document.querySelectorAll(selectors);
+        if (inputs.length > 0) {
+          control.makeTransliteratable(Array.from(inputs));
+        }
+      }
+
+      function onInputToolsReady() {
+        try {
+          const options = {
+            sourceLanguage: 'en',
+            destinationLanguage: ['mr'],
+            shortcutKey: 'ctrl+g',
+            transliterationEnabled: true
+          };
+
+          const control = new google.inputtools.elements.transliteration.TransliterationControl(options);
+
+          enableTransliteration(control);
+          setInterval(() => enableTransliteration(control), 2000);
+        } catch (err) {
+          console.warn('Transliteration control initialization failed:', err);
+        }
+      }
+
+      if (window.google?.setOnLoadCallback) {
+        google.setOnLoadCallback(onInputToolsReady);
+      } else {
+        window.addEventListener('load', () => {
+          if (window.google?.inputtools) {
+            onInputToolsReady();
+          }
+        });
+      }
     </script>
   </head>
   <body>
