@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl, uploadImageFile } from '../utils/apiClient.js';
 
 const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild, onUpdateMember, allMembers, isAdmin = false, adminToken = '' }) => {
   const [showAddForm, setShowAddForm] = useState(false);
@@ -232,27 +232,25 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
     setUploadingImage(true);
 
     try {
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('memberId', member.id);
-
+      const imageUrl = await uploadImageFile(file, { token: adminToken, folder: 'members' });
       const response = await apiFetch('/api/upload-image', {
         method: 'POST',
-        headers: { 'X-Admin-Token': adminToken },
-        body: formData,
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Token': adminToken,
+        },
+        body: JSON.stringify({ memberId: member.id, imageUrl }),
       });
-
+      const result = await response.json();
       if (response.ok) {
-        const result = await response.json();
         alert('Image uploaded successfully!');
         window.location.reload();
       } else {
-        const error = await response.json();
-        alert(error.error || 'Failed to upload image');
+        alert(result.error || 'Failed to upload image');
       }
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(error.message || 'Failed to upload image. Please try again.');
     } finally {
       setUploadingImage(false);
     }
@@ -278,7 +276,7 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
               title={imageUrl ? 'Click to preview' : ''}
             >
               {imageUrl ? (
-                <img src={imageUrl} alt={member.name} />
+                <img src={resolveImageUrl(imageUrl)} alt={member.name} />
               ) : (
                 <span>{getInitials(member.name)}</span>
               )}
@@ -677,7 +675,7 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
             ×
           </button>
           <div className="image-preview-container" onClick={(e) => e.stopPropagation()}>
-            <img src={imageUrl} alt={member.name} />
+            <img src={resolveImageUrl(imageUrl)} alt={member.name} />
             <p className="image-preview-caption">{member.name}</p>
           </div>
         </div>

@@ -1,3 +1,5 @@
+import { resolveImageUrl } from '../utils/apiClient.js';
+
 const CARD_WIDTH = 160;
 
 const getInitials = (name) => {
@@ -37,7 +39,7 @@ const FamilyTreeNode = ({ member, onPress, left, top }) => {
       >
         <div className="node-avatar">
           {imageUrl ? (
-            <img src={imageUrl} alt="Member" />
+            <img src={resolveImageUrl(imageUrl)} alt="Member" />
           ) : (
             <span>{getInitials(member.name)}</span>
           )}

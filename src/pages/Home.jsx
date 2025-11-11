@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import BrandHeader from '../components/BrandHeader.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
 
 const Home = () => {
   const [news, setNews] = useState([]);
@@ -139,7 +139,7 @@ const Home = () => {
                   {isSpecial && item.imageUrl ? (
                     <div style={{ padding: '14px 16px' }}>
                       <div className="birthday-inline">
-                        <img src={item.imageUrl} alt={item.title} />
+                        <img src={resolveImageUrl(item.imageUrl)} alt={item.title} />
                         <div>
                           <div className="feed-title" style={{ marginBottom: 4 }}>{displayTitle}</div>
                           <div className="feed-meta" style={{ marginBottom: 0 }}>{item.date}</div>
@@ -147,7 +147,7 @@ const Home = () => {
                       </div>
                     </div>
                   ) : item.imageUrl ? (
-                    <div className="feed-thumb"><img src={item.imageUrl} alt={displayTitle || item.title} /></div>
+                    <div className="feed-thumb"><img src={resolveImageUrl(item.imageUrl)} alt={displayTitle || item.title} /></div>
                   ) : (
                     <div className="feed-thumb placeholder">
                       <span>{t('home.feed.placeholder')}</span>

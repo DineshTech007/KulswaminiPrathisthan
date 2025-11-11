@@ -4,7 +4,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
-import sharp from 'sharp';
+import { v2 as cloudinary } from 'cloudinary';
 import { randomUUID, scryptSync, timingSafeEqual } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -13,6 +13,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '2mb' }));
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // Ensure images directory exists
 const IMAGES_DIR = path.join(__dirname, '../assets/images');
@@ -45,6 +51,24 @@ const DATA_FILE_PATH = path.join(__dirname, '../assets/data/data.js');
 const SITE_FILE_PATH = path.join(__dirname, '../assets/data/site.json');
 const NEWS_FILE_PATH = path.join(__dirname, '../assets/data/news.json');
 const EVENTS_FILE_PATH = path.join(__dirname, '../assets/data/events.json');
+
+const uploadBufferToCloudinary = (buffer, options = {}) => new Promise((resolve, reject) => {
+  if (!buffer) {
+    reject(new Error('No file buffer provided for upload'));
+    return;
+  }
+  const stream = cloudinary.uploader.upload_stream(
+    { folder: 'general', resource_type: 'image', ...options },
+    (error, result) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve(result);
+      }
+    }
+  );
+  stream.end(buffer);
+});
 
 // --- Simple Admin Auth (token-based) ---
 // Admin password verification: prefer hash+salt via env, fallback to plaintext env for dev
@@ -144,6 +168,21 @@ app.post('/api/logout', (req, res) => {
   const token = req.headers['x-admin-token'];
   if (token) tokenStore.delete(token);
   return res.json({ success: true });
+});
+
+app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Image file is required' });
+    }
+    const folderInput = req.body?.folder;
+    const folder = typeof folderInput === 'string' && folderInput.trim() ? folderInput.trim() : 'members';
+    const result = await uploadBufferToCloudinary(req.file.buffer, { folder });
+    return res.json({ url: result.secure_url, public_id: result.public_id });
+  } catch (error) {
+    console.error('Cloudinary upload failed:', error);
+    return res.status(500).json({ error: 'Image upload failed' });
+  }
 });
 
 // Helper function to read data
@@ -398,29 +437,19 @@ app.get('/api/events', async (req, res) => {
 });
 
 // Upload site icon (admin) - saves optimized PNG and updates settings
-app.post('/api/upload-site-icon', requireAdmin, upload.single('icon'), async (req, res) => {
+app.post('/api/upload-site-icon', requireAdmin, async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No icon file provided' });
+    const { iconUrl } = req.body || {};
+    if (!iconUrl || typeof iconUrl !== 'string') {
+      return res.status(400).json({ error: 'Icon URL is required' });
     }
-    if (!req.file.mimetype.startsWith('image/')) {
-      return res.status(400).json({ error: 'Invalid image type' });
-    }
-    const ICON_FILENAME = 'site-icon.png';
-    const ICON_PATH = path.join(IMAGES_DIR, ICON_FILENAME);
-    await sharp(req.file.buffer)
-      .resize(128, 128, { fit: 'cover' })
-      .png({ quality: 90 })
-      .toFile(ICON_PATH);
-    const publicPath = `/assets/images/${ICON_FILENAME}`;
-    // Update site settings with new favicon path (not a data URL now)
     const current = await readSiteSettings();
-    await writeSiteSettings({ title: current.title, faviconDataUrl: publicPath });
+    await writeSiteSettings({ title: current.title, faviconDataUrl: iconUrl });
     const updated = await readSiteSettings();
     res.json({ success: true, settings: updated });
   } catch (error) {
     console.error('Error uploading site icon:', error);
-    res.status(500).json({ error: 'Failed to upload site icon' });
+    res.status(500).json({ error: 'Failed to update site icon' });
   }
 });
 
@@ -432,17 +461,10 @@ async function writeJsonFile(filePath, data) {
 
 const genId = (prefix) => `${prefix}-${Date.now()}-${Math.floor(Math.random()*1e6)}`;
 
-app.post('/api/news', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+app.post('/api/news', requireManagerOrAdmin, async (req, res) => {
   try {
-    const { title, date, summary = '', link = '' } = req.body || {};
+    const { title, date, summary = '', link = '', imageUrl = '' } = req.body || {};
     if (!title || !date) return res.status(400).json({ error: 'title and date are required' });
-    let imageUrl = '';
-    if (req.file) {
-      const filename = `news-${Date.now()}.jpg`;
-      const filepath = path.join(IMAGES_DIR, filename);
-      await sharp(req.file.buffer).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toFile(filepath);
-      imageUrl = `/assets/images/${filename}`;
-    }
     const items = await readJsonFile(NEWS_FILE_PATH, []);
     const item = { id: genId('n'), title, date, summary, link, imageUrl };
     items.unshift(item);
@@ -454,17 +476,10 @@ app.post('/api/news', requireManagerOrAdmin, upload.single('image'), async (req,
   }
 });
 
-app.post('/api/events', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+app.post('/api/events', requireManagerOrAdmin, async (req, res) => {
   try {
-    const { title, date, time = '', location = '', description = '', link = '' } = req.body || {};
+    const { title, date, time = '', location = '', description = '', link = '', imageUrl = '' } = req.body || {};
     if (!title || !date) return res.status(400).json({ error: 'title and date are required' });
-    let imageUrl = '';
-    if (req.file) {
-      const filename = `event-${Date.now()}.jpg`;
-      const filepath = path.join(IMAGES_DIR, filename);
-      await sharp(req.file.buffer).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toFile(filepath);
-      imageUrl = `/assets/images/${filename}`;
-    }
     const items = await readJsonFile(EVENTS_FILE_PATH, []);
     const item = { id: genId('e'), title, date, time, location, description, link, imageUrl };
     items.unshift(item);
@@ -477,7 +492,7 @@ app.post('/api/events', requireManagerOrAdmin, upload.single('image'), async (re
 });
 
 // Edit news (manager/admin)
-app.patch('/api/news/:id', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+app.patch('/api/news/:id', requireManagerOrAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ error: 'id required' });
@@ -485,24 +500,12 @@ app.patch('/api/news/:id', requireManagerOrAdmin, upload.single('image'), async 
     const idx = items.findIndex(i => i.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     const current = items[idx];
-    const { title, date, summary, link } = req.body || {};
+    const { title, date, summary, link, imageUrl } = req.body || {};
     if (title !== undefined) current.title = title;
     if (date !== undefined) current.date = date;
     if (summary !== undefined) current.summary = summary;
     if (link !== undefined) current.link = link;
-    if (req.file) {
-      // replace image
-      try {
-        if (current.imageUrl && current.imageUrl.startsWith('/assets/images/')) {
-          const old = path.join(IMAGES_DIR, path.basename(current.imageUrl));
-          await fs.unlink(old).catch(() => {});
-        }
-      } catch {}
-      const filename = `news-${Date.now()}.jpg`;
-      const filepath = path.join(IMAGES_DIR, filename);
-      await sharp(req.file.buffer).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toFile(filepath);
-      current.imageUrl = `/assets/images/${filename}`;
-    }
+    if (imageUrl !== undefined) current.imageUrl = imageUrl;
     items[idx] = current;
     await writeJsonFile(NEWS_FILE_PATH, items);
     res.json({ success: true, item: current });
@@ -513,7 +516,7 @@ app.patch('/api/news/:id', requireManagerOrAdmin, upload.single('image'), async 
 });
 
 // Edit event (manager/admin)
-app.patch('/api/events/:id', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
+app.patch('/api/events/:id', requireManagerOrAdmin, async (req, res) => {
   try {
     const id = req.params.id;
     if (!id) return res.status(400).json({ error: 'id required' });
@@ -521,25 +524,14 @@ app.patch('/api/events/:id', requireManagerOrAdmin, upload.single('image'), asyn
     const idx = items.findIndex(i => i.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
     const current = items[idx];
-    const { title, date, time, location, description, link } = req.body || {};
+    const { title, date, time, location, description, link, imageUrl } = req.body || {};
     if (title !== undefined) current.title = title;
     if (date !== undefined) current.date = date;
     if (time !== undefined) current.time = time;
     if (location !== undefined) current.location = location;
     if (description !== undefined) current.description = description;
     if (link !== undefined) current.link = link;
-    if (req.file) {
-      try {
-        if (current.imageUrl && current.imageUrl.startsWith('/assets/images/')) {
-          const old = path.join(IMAGES_DIR, path.basename(current.imageUrl));
-          await fs.unlink(old).catch(() => {});
-        }
-      } catch {}
-      const filename = `event-${Date.now()}.jpg`;
-      const filepath = path.join(IMAGES_DIR, filename);
-      await sharp(req.file.buffer).resize(800, 800, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toFile(filepath);
-      current.imageUrl = `/assets/images/${filename}`;
-    }
+    if (imageUrl !== undefined) current.imageUrl = imageUrl;
     items[idx] = current;
     await writeJsonFile(EVENTS_FILE_PATH, items);
     res.json({ success: true, item: current });
@@ -556,15 +548,8 @@ app.delete('/api/news/:id', requireManagerOrAdmin, async (req, res) => {
     const items = await readJsonFile(NEWS_FILE_PATH, []);
     const idx = items.findIndex(i => i.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    const [removed] = items.splice(idx, 1);
+    items.splice(idx, 1);
     await writeJsonFile(NEWS_FILE_PATH, items);
-    // attempt to delete image file if exists and is in our images dir
-    try {
-      if (removed?.imageUrl && removed.imageUrl.startsWith('/assets/images/')) {
-        const fp = path.join(IMAGES_DIR, path.basename(removed.imageUrl));
-        await fs.unlink(fp).catch(() => {});
-      }
-    } catch {}
     res.json({ success: true });
   } catch (e) {
     console.error('Delete news failed', e);
@@ -580,14 +565,8 @@ app.delete('/api/events/:id', requireManagerOrAdmin, async (req, res) => {
     const items = await readJsonFile(EVENTS_FILE_PATH, []);
     const idx = items.findIndex(i => i.id === id);
     if (idx === -1) return res.status(404).json({ error: 'Not found' });
-    const [removed] = items.splice(idx, 1);
+    items.splice(idx, 1);
     await writeJsonFile(EVENTS_FILE_PATH, items);
-    try {
-      if (removed?.imageUrl && removed.imageUrl.startsWith('/assets/images/')) {
-        const fp = path.join(IMAGES_DIR, path.basename(removed.imageUrl));
-        await fs.unlink(fp).catch(() => {});
-      }
-    } catch {}
     res.json({ success: true });
   } catch (e) {
     console.error('Delete event failed', e);
@@ -698,41 +677,21 @@ app.post('/api/update-member', requireAdmin, async (req, res) => {
 });
 
 // Upload image endpoint (admin only)
-app.post('/api/upload-image', requireAdmin, upload.single('image'), async (req, res) => {
+app.post('/api/upload-image', requireAdmin, async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No image file provided' });
-    }
-
-    const { memberId } = req.body;
+    const { memberId, imageUrl } = req.body || {};
     if (!memberId) {
       return res.status(400).json({ error: 'Member ID is required' });
     }
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const filename = `member-${memberId}-${timestamp}.jpg`;
-    const filepath = path.join(IMAGES_DIR, filename);
-
-    // Compress and save image using sharp
-    await sharp(req.file.buffer)
-      .resize(800, 800, { 
-        fit: 'inside',
-        withoutEnlargement: true 
-      })
-      .jpeg({ quality: 80 })
-      .toFile(filepath);
-
-    // Get relative path for storing in data
-    const imageUrl = `/assets/images/${filename}`;
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      return res.status(400).json({ error: 'Image URL is required' });
+    }
 
     // Update member's notes with image URL
     const data = await readData();
     const member = data.find(m => m.id === memberId);
     
     if (!member) {
-      // Clean up uploaded file
-      await fs.unlink(filepath);
       return res.status(404).json({ error: 'Member not found' });
     }
 
@@ -754,7 +713,7 @@ app.post('/api/upload-image', requireAdmin, upload.single('image'), async (req, 
 });
 
 // Start the Express server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`API server running on port ${PORT}`);
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ API running on port ${PORT}`);
 });

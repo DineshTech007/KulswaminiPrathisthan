@@ -3,7 +3,7 @@ import BrandHeader from '../components/BrandHeader.jsx';
 import WaIcon from '../components/WaIcon.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
 
 const birthdayTerms = ['birthday', 'birth day', 'जन्मदिन', 'जन्मदिवस', 'वाढदिवस'];
 const anniversaryTerms = ['anniversary', 'वर्धापनदिन', 'स्मृतिदिन'];
@@ -235,7 +235,7 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
           </div>
           {spotlightNews.imageUrl && (
             <div className="news-spotlight__visual">
-              <img src={spotlightNews.imageUrl} alt={resolveTitle(spotlightNews) || spotlightNews.title} />
+              <img src={resolveImageUrl(spotlightNews.imageUrl)} alt={resolveTitle(spotlightNews) || spotlightNews.title} />
             </div>
           )}
         </section>
@@ -318,11 +318,11 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
                       {item.imageUrl && (
                         isCelebration ? (
                           <div className="news-card__avatar">
-                            <img src={item.imageUrl} alt={displayTitle || item.title} />
+                            <img src={resolveImageUrl(item.imageUrl)} alt={displayTitle || item.title} />
                           </div>
                         ) : (
                           <div className="news-card__media">
-                            <img src={item.imageUrl} alt={displayTitle || item.title} />
+                            <img src={resolveImageUrl(item.imageUrl)} alt={displayTitle || item.title} />
                           </div>
                         )
                       )}

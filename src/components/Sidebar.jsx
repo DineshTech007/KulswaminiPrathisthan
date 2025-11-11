@@ -4,7 +4,7 @@ import AdminToolbar from './AdminToolbar.jsx';
 import WaIcon from './WaIcon.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, uploadImageFile } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = '', onLoginSuccess, onLogout }) => {
@@ -123,19 +123,27 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                   e.preventDefault();
                   if (!newsForm.title || !newsForm.date) { alert('Title and Date required'); return; }
                   try {
-                    const fd = new FormData();
-                    fd.append('title', newsForm.title);
-                    fd.append('date', newsForm.date);
-                    fd.append('summary', newsForm.summary);
-                    fd.append('link', newsForm.link);
-                    if (e.currentTarget.elements.newsImage?.files?.[0]) {
-                      fd.append('image', e.currentTarget.elements.newsImage.files[0]);
+                    let imageUrl = '';
+                    const imageFile = e.currentTarget.elements.newsImage?.files?.[0];
+                    if (imageFile) {
+                      imageUrl = await uploadImageFile(imageFile, { token, folder: 'news' });
                     }
-                    const res = await apiFetch('/api/news', { method: 'POST', headers: { 'X-Admin-Token': token }, body: fd });
+                    const res = await apiFetch('/api/news', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+                      body: JSON.stringify({
+                        title: newsForm.title,
+                        date: newsForm.date,
+                        summary: newsForm.summary,
+                        link: newsForm.link,
+                        imageUrl,
+                      })
+                    });
                     const json = await res.json();
                     if (res.ok) {
                       setNewsForm({ title: '', date: '', summary: '', link: '' });
                       setAdding(a => ({ ...a, news: false }));
+                      e.currentTarget.reset();
                       // refresh
                       const r = await apiFetch('/api/news');
                       const j = await r.json();
@@ -143,7 +151,10 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     } else {
                       alert(json.error || 'Failed to add news');
                     }
-                  } catch { alert('Failed to add news'); }
+                  } catch (err) { 
+                    console.error('News upload failed:', err);
+                    alert(err.message || 'Failed to add news');
+                  }
                 }} className="sidebar-form">
                   <input placeholder={t('sidebar.form.title')} value={newsForm.title} onChange={e=>setNewsForm({...newsForm,title:e.target.value})} />
                   <input placeholder={t('sidebar.form.date')} value={newsForm.date} onChange={e=>setNewsForm({...newsForm,date:e.target.value})} />
@@ -184,24 +195,40 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                   e.preventDefault();
                   if (!eventForm.title || !eventForm.date) { alert('Title and Date required'); return; }
                   try {
-                    const fd = new FormData();
-                    Object.entries(eventForm).forEach(([k,v]) => fd.append(k, v));
-                    if (e.currentTarget.elements.eventImage?.files?.[0]) {
-                      fd.append('image', e.currentTarget.elements.eventImage.files[0]);
+                    let imageUrl = '';
+                    const imageFile = e.currentTarget.elements.eventImage?.files?.[0];
+                    if (imageFile) {
+                      imageUrl = await uploadImageFile(imageFile, { token, folder: 'events' });
                     }
-                    const res = await fetch('/api/events', { method: 'POST', headers: { 'X-Admin-Token': token }, body: fd });
+                    const res = await apiFetch('/api/events', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+                      body: JSON.stringify({
+                        title: eventForm.title,
+                        date: eventForm.date,
+                        time: eventForm.time,
+                        location: eventForm.location,
+                        description: eventForm.description,
+                        link: eventForm.link,
+                        imageUrl,
+                      })
+                    });
                     const json = await res.json();
                     if (res.ok) {
                       setEventForm({ title: '', date: '', time: '', location: '', description: '', link: '' });
                       setAdding(a => ({ ...a, events: false }));
+                      e.currentTarget.reset();
                       // refresh
-                      const r = await fetch('/api/events');
+                      const r = await apiFetch('/api/events');
                       const j = await r.json();
                       if (r.ok) setEvents(Array.isArray(j.items) ? j.items.slice(0,5) : []);
                     } else {
                       alert(json.error || 'Failed to add event');
                     }
-                  } catch { alert('Failed to add event'); }
+                  } catch (err) {
+                    console.error('Event upload failed:', err);
+                    alert(err.message || 'Failed to add event');
+                  }
                 }} className="sidebar-form">
                   <input placeholder={t('sidebar.form.title')} value={eventForm.title} onChange={e=>setEventForm({...eventForm,title:e.target.value})} />
                   <input placeholder={t('sidebar.form.date')} value={eventForm.date} onChange={e=>setEventForm({...eventForm,date:e.target.value})} />

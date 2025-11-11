@@ -4,7 +4,7 @@ import FamilyTree from './components/FamilyTree.jsx';
 import Sidebar from './components/Sidebar.jsx';
 import News from './pages/News.jsx';
 import Events from './pages/Events.jsx';
-import { apiFetch } from './utils/apiClient.js';
+import { apiFetch, resolveImageUrl } from './utils/apiClient.js';
 import Home from './pages/Home.jsx';
 import { useTranslation } from './context/LanguageContext.jsx';
 
@@ -123,6 +123,8 @@ const App = () => {
     }
     const setFavicon = (href) => {
       if (!href) return;
+      // Resolve relative URLs to absolute
+      const resolvedHref = resolveImageUrl(href);
       // Remove existing icons to avoid conflicts
       const existing = Array.from(document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'));
       existing.forEach((el) => el.parentNode?.removeChild(el));
@@ -131,16 +133,16 @@ const App = () => {
       icon32.rel = 'icon';
       icon32.type = 'image/png';
       icon32.sizes = '32x32';
-      icon32.href = href;
+      icon32.href = resolvedHref;
 
       const iconAny = document.createElement('link');
       iconAny.rel = 'shortcut icon';
       iconAny.type = 'image/png';
-      iconAny.href = href;
+      iconAny.href = resolvedHref;
 
       const apple = document.createElement('link');
       apple.rel = 'apple-touch-icon';
-      apple.href = href;
+      apple.href = resolvedHref;
 
       document.head.appendChild(icon32);
       document.head.appendChild(iconAny);

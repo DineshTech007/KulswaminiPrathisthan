@@ -4,7 +4,7 @@ import AdminToolbar from './AdminToolbar.jsx';
 import MemberDetailModal from './MemberDetailModal.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useLanguage, useTranslation } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl, uploadImageFile } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const NODE_WIDTH = 160;
@@ -596,7 +596,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
           <h1>
             {siteFavicon ? (
               <img
-                src={siteFavicon}
+                src={resolveImageUrl(siteFavicon)}
                 alt="icon"
                 style={{
                   width: 48,
@@ -690,20 +690,25 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const form = new FormData();
-                    form.append('icon', file);
                     try {
-                      const res = await apiFetch('/api/upload-site-icon', { method: 'POST', headers: { 'X-Admin-Token': adminToken }, body: form });
+                      const iconUrl = await uploadImageFile(file, { token: adminToken, folder: 'site' });
+                      const res = await apiFetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
+                        body: JSON.stringify({ title: siteTitle, faviconDataUrl: iconUrl }),
+                      });
                       const json = await res.json();
                       if (res.ok) {
                         alert('Icon updated');
                         if (typeof onSettingsUpdated === 'function') onSettingsUpdated();
                       } else {
-                        alert(json.error || 'Failed to upload icon');
+                        alert(json.error || 'Failed to update icon');
                       }
-                    } catch {
-                      alert('Failed to upload icon');
+                    } catch (err) {
+                      console.error('Icon upload failed:', err);
+                      alert(err.message || 'Failed to upload icon');
                     }
+                    e.target.value = '';
                   }} />
                   {t('family.changeIcon')}
                 </label>

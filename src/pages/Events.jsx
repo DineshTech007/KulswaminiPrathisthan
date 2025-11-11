@@ -3,7 +3,7 @@ import BrandHeader from '../components/BrandHeader.jsx';
 import WaIcon from '../components/WaIcon.jsx';
 import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
-import { apiFetch } from '../utils/apiClient.js';
+import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const birthdayTerms = ['birthday', 'birth day', 'जन्मदिन', 'जन्मदिवस', 'वाढदिवस'];
@@ -256,7 +256,7 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
           </div>
           {spotlightEvent.imageUrl && (
             <div className="events-spotlight__visual">
-              <img src={spotlightEvent.imageUrl} alt={resolveTitle(spotlightEvent) || spotlightEvent.title} />
+              <img src={resolveImageUrl(spotlightEvent.imageUrl)} alt={resolveTitle(spotlightEvent) || spotlightEvent.title} />
             </div>
           )}
         </section>
@@ -338,11 +338,11 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                       {item.imageUrl && (
                         item.isBirthday ? (
                           <div className="event-card__avatar">
-                            <img src={item.imageUrl} alt={displayTitle || item.title} />
+                            <img src={resolveImageUrl(item.imageUrl)} alt={displayTitle || item.title} />
                           </div>
                         ) : (
                           <div className="event-card__media">
-                            <img src={item.imageUrl} alt={displayTitle || item.title} />
+                            <img src={resolveImageUrl(item.imageUrl)} alt={displayTitle || item.title} />
                           </div>
                         )
                       )}

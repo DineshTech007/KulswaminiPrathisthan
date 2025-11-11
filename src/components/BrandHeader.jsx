@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { resolveImageUrl } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
 const BrandHeader = ({ title = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', icon = '', right = null }) => {
@@ -8,7 +9,7 @@ const BrandHeader = ({ title = 'कुलस्वामिनी प्रत�
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         {icon ? (
           <img
-            src={icon}
+            src={resolveImageUrl(icon)}
             alt="icon"
             style={{
               width: 48,
