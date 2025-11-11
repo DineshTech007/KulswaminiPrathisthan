@@ -1,4 +1,6 @@
 import express from 'express';
+import cors from 'cors';
+import serverless from 'serverless-http';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,6 +12,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.use(cors());
 app.use(express.json({ limit: '2mb' }));
 
 // Ensure images directory exists
@@ -18,6 +21,11 @@ await fs.mkdir(IMAGES_DIR, { recursive: true });
 
 // Serve static images
 app.use('/assets/images', express.static(IMAGES_DIR));
+
+// Health / smoke test route
+app.get('/api/hello', (req, res) => {
+  res.json({ message: 'Hello from Express API!' });
+});
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -386,7 +394,6 @@ app.get('/api/events', async (req, res) => {
 });
 
 // Upload site icon (admin) - saves optimized PNG and updates settings
-import { createWriteStream } from 'fs';
 app.post('/api/upload-site-icon', requireAdmin, upload.single('icon'), async (req, res) => {
   try {
     if (!req.file) {
@@ -737,7 +744,13 @@ app.post('/api/upload-image', requireAdmin, upload.single('image'), async (req, 
   }
 });
 
-const PORT = 3001;
-app.listen(PORT, () => {
-  console.log(`API server running on http://localhost:${PORT}`);
-});
+const PORT = process.env.PORT || 3001;
+
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`API server running on http://localhost:${PORT}`);
+  });
+}
+
+export const handler = serverless(app);
+export default app;
