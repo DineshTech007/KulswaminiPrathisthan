@@ -25,10 +25,10 @@ const Contact = () => {
           </p>
           <ul className="space-y-3 text-base text-slate-700">
             <li className="rounded-2xl bg-primary-50 p-4 font-semibold text-primary-700">
-              📧 Email: support@kulswamini-family.org
+              📧 Email: support@Kulswamini-Prathisthan.org
             </li>
             <li className="rounded-2xl bg-primary-50 p-4 font-semibold text-primary-700">
-              📞 WhatsApp: +91 98765 43210
+              📞 WhatsApp: +91 968984 4178
             </li>
             <li className="rounded-2xl bg-primary-50 p-4 font-semibold text-primary-700">
               🏠 Address: Barshi, Solapur District, Maharashtra

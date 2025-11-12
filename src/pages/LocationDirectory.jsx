@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import locationSample from '../data/locationSample.js';
@@ -91,6 +91,7 @@ const LocationDirectory = ({ data = [] }) => {
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const records = useMemo(() => buildRecords(data), [data]);
 
@@ -102,29 +103,119 @@ const LocationDirectory = ({ data = [] }) => {
     return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [records]);
 
-  const stateOptions = useMemo(() => {
-    const set = new Set();
-    records.forEach((record) => {
-      if (filters.country && record.country !== filters.country) return;
-      if (record.state) set.add(record.state);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [records, filters.country]);
+  const getStatesForCountry = useCallback(
+    (country) => {
+      if (!country) return [];
+      const set = new Set();
+      records.forEach((record) => {
+        if (record.country === country && record.state) {
+          set.add(record.state);
+        }
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b));
+    },
+    [records]
+  );
 
-  const cityOptions = useMemo(() => {
-    const set = new Set();
-    records.forEach((record) => {
-      if (filters.country && record.country !== filters.country) return;
-      if (filters.state && record.state !== filters.state) return;
-      if (record.city) set.add(record.city);
-    });
-    return Array.from(set).sort((a, b) => a.localeCompare(b));
-  }, [records, filters.country, filters.state]);
+  const getCitiesForLocation = useCallback(
+    (country, state) => {
+      if (!country) return [];
+      const set = new Set();
+      records.forEach((record) => {
+        if (record.country !== country) return;
+        if (state && record.state && record.state !== state) return;
+        if (record.city) set.add(record.city);
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b));
+    },
+    [records]
+  );
+
+  const stateOptions = useMemo(
+    () => getStatesForCountry(filters.country),
+    [getStatesForCountry, filters.country]
+  );
+
+  const cityOptions = useMemo(
+    () => getCitiesForLocation(filters.country, filters.state),
+    [getCitiesForLocation, filters.country, filters.state]
+  );
 
   const filteredRecords = useMemo(
     () => applyFilters(records, submittedFilters),
     [records, submittedFilters]
   );
+
+  useEffect(() => {
+    if (!countryOptions.length) return;
+
+    const needsInitialization =
+      !isInitialized || (filters.country && !countryOptions.includes(filters.country));
+
+    if (!needsInitialization) return;
+
+    const nextCountry = countryOptions[0];
+    const nextState = getStatesForCountry(nextCountry)[0] || '';
+    const nextCity = getCitiesForLocation(nextCountry, nextState)[0] || '';
+    const initialFilters = { country: nextCountry, state: nextState, city: nextCity };
+
+    setFilters(initialFilters);
+    setSubmittedFilters(initialFilters);
+    setIsInitialized(true);
+  }, [
+    countryOptions,
+    filters.country,
+    getStatesForCountry,
+    getCitiesForLocation,
+    isInitialized,
+  ]);
+
+  useEffect(() => {
+    if (!filters.country) return;
+
+    if (!stateOptions.length) {
+      if (!filters.state) return;
+      const nextCity = getCitiesForLocation(filters.country, '')[0] || '';
+      const nextFilters = { country: filters.country, state: '', city: nextCity };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    if (!filters.state) return;
+    if (stateOptions.includes(filters.state)) return;
+
+    const fallbackState = stateOptions[0];
+    const nextCity = getCitiesForLocation(filters.country, fallbackState)[0] || '';
+    const nextFilters = { country: filters.country, state: fallbackState, city: nextCity };
+    setFilters(nextFilters);
+    setSubmittedFilters(nextFilters);
+  }, [
+    filters.country,
+    filters.state,
+    stateOptions,
+    getCitiesForLocation,
+  ]);
+
+  useEffect(() => {
+    if (!filters.country) return;
+
+    if (!cityOptions.length) {
+      if (!filters.city) return;
+      const nextFilters = { country: filters.country, state: filters.state, city: '' };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    if (!filters.city) return;
+    if (cityOptions.includes(filters.city)) return;
+
+    const fallbackCity = cityOptions[0];
+    const nextFilters = { country: filters.country, state: filters.state, city: fallbackCity };
+    setFilters(nextFilters);
+    setSubmittedFilters(nextFilters);
+  }, [filters.country, filters.state, filters.city, cityOptions]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -159,20 +250,34 @@ const LocationDirectory = ({ data = [] }) => {
     setFilters({ country: '', state: '', city: '' });
     setSubmittedFilters({ country: '', state: '', city: '' });
     setError(null);
+    setIsInitialized(false);
+    setIsSearching(false);
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters((prev) => {
-      const next = { ...prev, [field]: value };
-      if (field === 'country') {
-        next.state = '';
-        next.city = '';
-      }
-      if (field === 'state') {
-        next.city = '';
-      }
-      return next;
-    });
+    setError(null);
+    setIsSearching(false);
+
+    if (field === 'country') {
+      const nextState = getStatesForCountry(value)[0] || '';
+      const nextCity = getCitiesForLocation(value, nextState)[0] || '';
+      const nextFilters = { country: value, state: nextState, city: nextCity };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    if (field === 'state') {
+      const nextCity = getCitiesForLocation(filters.country, value)[0] || '';
+      const nextFilters = { ...filters, state: value, city: nextCity };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    const nextFilters = { ...filters, [field]: value };
+    setFilters(nextFilters);
+    setSubmittedFilters(nextFilters);
   };
 
   const selectedMeta = useMemo(() => {
