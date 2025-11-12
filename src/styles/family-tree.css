@@ -59,6 +59,7 @@
 .sidebar-nav { display:flex; flex-direction:column; gap:8px; margin-bottom:20px; }
 .sidebar-link { text-decoration:none; padding:10px 14px; border-radius:10px; background:#f8fafc; color:#4338ca; font-weight:600; font-size:14px; border:1px solid #e2e8f0; }
 .sidebar-link:hover { background:#eef2ff; }
+.sidebar-link.active { background:linear-gradient(135deg, #6366f1, #4338ca); color:#ffffff; border-color:#4338ca; box-shadow:0 12px 24px rgba(79, 70, 229, 0.25); }
 .sidebar-section { margin-top:18px; }
 .sidebar-section h4 { 
   margin: 0 0 10px; 

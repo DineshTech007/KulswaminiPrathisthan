@@ -2,10 +2,14 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import FamilyTree from './components/FamilyTree.jsx';
 import Sidebar from './components/Sidebar.jsx';
+import MainNavigation from './components/MainNavigation.jsx';
 import News from './pages/News.jsx';
 import Events from './pages/Events.jsx';
 import { apiFetch, resolveImageUrl } from './utils/apiClient.js';
 import Home from './pages/Home.jsx';
+import LocationDirectory from './pages/LocationDirectory.jsx';
+import About from './pages/About.jsx';
+import Contact from './pages/Contact.jsx';
 import { useTranslation } from './context/LanguageContext.jsx';
 
 const MIN_LOADING_DURATION_MS = 900;
@@ -327,42 +331,51 @@ const App = () => {
           onLogout={handleLogout}
         />
         <div className={`app-root ${sidebarOpen ? 'with-sidebar' : ''}`}>
+          <MainNavigation />
           {error && (
-            <div className="error-card" role="alert">
-              <h2>Could not load data</h2>
-              <p>{error}</p>
-              <button onClick={handleRetry}>Retry</button>
+            <div className="px-4 pt-4">
+              <div className="error-card" role="alert">
+                <h2>Could not load data</h2>
+                <p>{error}</p>
+                <button onClick={handleRetry}>Retry</button>
+              </div>
             </div>
           )}
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/family"
-              element={(
-                <FamilyTree
-                  data={treeData}
-                  onDataUpdated={() => fetchData(true)}
-                  isAdmin={isAdmin}
-                  adminToken={adminToken}
-                  onLoginSuccess={handleLoginSuccess}
-                  onLogout={handleLogout}
-                  siteTitle={siteSettings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी '}
-                  siteFavicon={siteSettings?.faviconDataUrl || ''}
-                  onSettingsUpdated={fetchSettings}
-                  onToggleSidebar={() => setSidebarOpen(o => !o)}
-                  role={userRole}
-                />
-              )}
-            />
-            <Route path="/news" element={<News isAdmin={isAdmin} isManager={isManager} token={adminToken} />} />
-            <Route path="/events" element={<Events isAdmin={isAdmin} isManager={isManager} token={adminToken} />} />
-          </Routes>
-          <button
-            type="button"
-            className="floating-sidebar-toggle"
-            aria-label="Toggle sidebar"
-            onClick={() => setSidebarOpen(o => !o)}
-          >☰</button>
+          <div className="relative flex-1">
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/family"
+                element={(
+                  <FamilyTree
+                    data={treeData}
+                    onDataUpdated={() => fetchData(true)}
+                    isAdmin={isAdmin}
+                    adminToken={adminToken}
+                    onLoginSuccess={handleLoginSuccess}
+                    onLogout={handleLogout}
+                    siteTitle={siteSettings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी '}
+                    siteFavicon={siteSettings?.faviconDataUrl || ''}
+                    onSettingsUpdated={fetchSettings}
+                    onToggleSidebar={() => setSidebarOpen((o) => !o)}
+                    role={userRole}
+                  />
+                )}
+              />
+              <Route path="/news" element={<News isAdmin={isAdmin} isManager={isManager} token={adminToken} />} />
+              <Route path="/events" element={<Events isAdmin={isAdmin} isManager={isManager} token={adminToken} />} />
+              <Route path="/directory" element={<LocationDirectory data={treeData} />} />
+              <Route path="/locations" element={<LocationDirectory data={treeData} />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+            </Routes>
+            <button
+              type="button"
+              className="floating-sidebar-toggle"
+              aria-label="Toggle sidebar"
+              onClick={() => setSidebarOpen((o) => !o)}
+            >☰</button>
+          </div>
         </div>
       </BrowserRouter>
     </ErrorBoundary>

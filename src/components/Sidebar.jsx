@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import AdminToolbar from './AdminToolbar.jsx';
 import WaIcon from './WaIcon.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
@@ -46,6 +46,16 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
 
   const futureNews = news.filter(item => !isDatePast(item.date));
   const futureEvents = events.filter(item => !isDatePast(item.date));
+
+  const navItems = [
+    { to: '/', label: t('sidebar.home'), exact: true },
+    { to: '/family', label: t('nav.familyTree') },
+    { to: '/directory', label: t('nav.directory') },
+    { to: '/about', label: t('nav.about') },
+    { to: '/contact', label: t('nav.contact') },
+    { to: '/news', label: t('sidebar.news') },
+    { to: '/events', label: t('sidebar.events') },
+  ];
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -166,10 +176,16 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
           />
         </div>
         <nav className="sidebar-nav">
-          <Link to="/" className="sidebar-link">{t('sidebar.home')}</Link>
-          <Link to="/family" className="sidebar-link">{t('sidebar.familyTree')}</Link>
-          <Link to="/news" className="sidebar-link">{t('sidebar.news')}</Link>
-          <Link to="/events" className="sidebar-link">{t('sidebar.events')}</Link>
+          {navItems.map(({ to, label, exact }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={exact}
+              className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
+            >
+              {label}
+            </NavLink>
+          ))}
         </nav>
         <div className="sidebar-section">
           <h4>{t('sidebar.latestNews')}</h4>
