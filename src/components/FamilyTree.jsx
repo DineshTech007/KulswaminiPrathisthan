@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import FamilyTreeNode from './FamilyTreeNode.jsx';
-import AdminToolbar from './AdminToolbar.jsx';
 import MemberDetailModal from './MemberDetailModal.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
 import { useLanguage, useTranslation } from '../context/LanguageContext.jsx';
@@ -784,20 +783,9 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
               </div>
             )}
           </div>
-          <div className="admin-inline">
-            {/* Inline admin icon moved next to search */}
-            {/* We rely on App.jsx providing AdminToolbar globally; duplicate optional inline trigger could be added */}
-          </div>
           <div className="header-actions top-right-actions">
               <LanguageSwitcher />
               <button type="button" className="menu-button" onClick={onToggleSidebar} title={t('family.menu')} aria-label={t('family.menu')}>☰</button>
-            <AdminToolbar
-              isAdmin={isAdmin}
-              token={adminToken}
-              onLoginSuccess={onLoginSuccess}
-              onLogout={onLogout}
-              role={role}
-            />
             {isAdmin && (
               <>
                 <button

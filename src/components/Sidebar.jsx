@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import AdminToolbar from './AdminToolbar.jsx';
 import WaIcon from './WaIcon.jsx';
@@ -13,6 +13,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
   const [adding, setAdding] = useState({ news: false, events: false });
   const [newsForm, setNewsForm] = useState({ title: '', date: '', summary: '', link: '' });
   const [eventForm, setEventForm] = useState({ title: '', date: '', time: '', location: '', description: '', link: '' });
+  const [swipeStart, setSwipeStart] = useState(0);
+  const sidebarRef = useRef(null);
   const location = useLocation();
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -58,6 +60,46 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
+  useEffect(() => {
+    if (!open) return;
+
+    // Close sidebar on outside click
+    const handleClickOutside = (e) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
+        onClose?.();
+      }
+    };
+
+    // Handle swipe gesture to close (swipe left)
+    const handleTouchStart = (e) => {
+      setSwipeStart(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = (e) => {
+      if (swipeStart === 0) return;
+      const swipeEnd = e.changedTouches[0].clientX;
+      const swipeDistance = swipeStart - swipeEnd;
+      
+      // If swiped left more than 50px, close sidebar
+      if (swipeDistance > 50) {
+        onClose?.();
+      }
+      setSwipeStart(0);
+    };
+
+    setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleTouchStart);
+      document.addEventListener('touchend', handleTouchEnd);
+    }, 0);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [open, onClose, swipeStart]);
+
   const buildNewsShare = (item) => {
     const title = resolveTitle(item) || t('sidebar.news');
     const date = item.date ? `\n${t('common.dateLabel')}: ${item.date}` : '';
@@ -76,7 +118,20 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
   };
 
   return (
-    <aside className={`app-sidebar ${open ? 'open' : ''}`} aria-hidden={!open}>
+    <aside 
+      ref={sidebarRef}
+      className={`app-sidebar ${open ? 'open' : ''}`} 
+      aria-hidden={!open}
+      onTouchStart={(e) => setSwipeStart(e.touches[0].clientX)}
+      onTouchEnd={(e) => {
+        if (swipeStart === 0) return;
+        const swipeEnd = e.changedTouches[0].clientX;
+        if (swipeStart - swipeEnd > 50) {
+          onClose?.();
+        }
+        setSwipeStart(0);
+      }}
+    >
       <div className="sidebar-inner">
         <div className="sidebar-header">
           <h3>{t('sidebar.navigation')}</h3>
