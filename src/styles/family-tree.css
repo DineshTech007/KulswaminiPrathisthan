@@ -21,17 +21,21 @@
   flex-direction: column;
   transition: left 0.25s ease;
   touch-action: pan-y;
+  overscroll-behavior: contain;
+  max-height: 100vh;
 }
 .app-sidebar.open { left: 0; }
 .sidebar-inner { 
   flex: 1; 
-  overflow-y: scroll; 
+  overflow-y: auto; 
   overflow-x: hidden;
   padding: 20px 22px 40px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
+  min-height: 0;
+  max-height: 100%;
 }
 .sidebar-inner::-webkit-scrollbar {
   width: 10px;
