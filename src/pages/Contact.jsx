@@ -32,7 +32,7 @@ const Contact = () => {
             </li>
             <li className="rounded-2xl bg-primary-50 p-4 font-semibold text-primary-700">
               🏠 Address: Barshi, Solapur District, Maharashtra
-            </li>
+            </li> 
           </ul>
           <p className="text-sm text-slate-500">
             आम्ही शक्य तितक्या लवकर प्रतिसाद देण्याचा प्रयत्न करू. Thank you for staying connected! 🙏
