@@ -216,7 +216,6 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     if (res.ok) {
                       setNewsForm({ title: '', date: '', summary: '', link: '' });
                       setAdding(a => ({ ...a, news: false }));
-                      e.currentTarget.reset();
                       // refresh
                       const r = await apiFetch('/api/news');
                       const j = await r.json();
@@ -290,7 +289,6 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     if (res.ok) {
                       setEventForm({ title: '', date: '', time: '', location: '', description: '', link: '' });
                       setAdding(a => ({ ...a, events: false }));
-                      e.currentTarget.reset();
                       // refresh
                       const r = await apiFetch('/api/events');
                       const j = await r.json();
