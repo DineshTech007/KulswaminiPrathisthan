@@ -181,6 +181,7 @@ const translations = {
     'family.resetView': 'Reset View',
   'family.zoomIn': 'Zoom in',
   'family.zoomOut': 'Zoom out',
+    'family.expandTip': 'Click here to explore the family tree',
     'family.menu': 'Menu',
     'family.editTitle': 'Edit Title',
     'family.changeIcon': 'Change Icon',

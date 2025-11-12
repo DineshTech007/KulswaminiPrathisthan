@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from '../context/LanguageContext.jsx';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
 const CARD_WIDTH = 160;
@@ -23,6 +24,7 @@ const FamilyTreeNode = ({
   hiddenChildrenCount = 0,
   isFocused = false,
 }) => {
+  const { t } = useTranslation();
   const [showTooltip, setShowTooltip] = useState(hasChildren);
   
   useEffect(() => {
@@ -100,7 +102,7 @@ const FamilyTreeNode = ({
             </button>
             {showTooltip && (
               <div className="node-toggle-tooltip">
-                {isExpanded ? 'Collapse' : 'Expand'} branch
+                {t('family.expandTip')}
               </div>
             )}
           </div>
