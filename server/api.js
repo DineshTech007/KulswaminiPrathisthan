@@ -1,12 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import fs from 'fs/promises';
+import fsSync from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import multer from 'multer';
 import sharp from 'sharp';
 import { v2 as cloudinary } from 'cloudinary';
-import { randomUUID, scryptSync, timingSafeEqual } from 'crypto';
+import { randomUUID, scryptSync, timingSafeEqual, createHash } from 'crypto';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -52,6 +53,114 @@ const DATA_FILE_PATH = path.join(__dirname, '../assets/data/data.js');
 const SITE_FILE_PATH = path.join(__dirname, '../assets/data/site.json');
 const NEWS_FILE_PATH = path.join(__dirname, '../assets/data/news.json');
 const EVENTS_FILE_PATH = path.join(__dirname, '../assets/data/events.json');
+
+const DATA_CACHE_STATE = {
+  data: null,
+  meta: {
+    version: '',
+    etag: '',
+    refreshedAt: 0,
+    mtimeMs: 0,
+    size: 0,
+  },
+  promise: null,
+};
+
+const cloneData = (value) => JSON.parse(JSON.stringify(value));
+
+async function refreshDataCache() {
+  if (!DATA_FILE_PATH) return null;
+  const loadPromise = (async () => {
+    const [content, stats] = await Promise.all([
+      fs.readFile(DATA_FILE_PATH, 'utf-8'),
+      fs.stat(DATA_FILE_PATH),
+    ]);
+    const dataMatch = content.match(/const data = (\[[\s\S]*?\]);/);
+    if (!dataMatch) {
+      throw new Error('Invalid data file format');
+    }
+    const parsed = JSON.parse(dataMatch[1]);
+    const etag = createHash('sha1').update(content).digest('hex');
+    DATA_CACHE_STATE.data = parsed;
+    DATA_CACHE_STATE.meta = {
+      version: `${Math.round(stats.mtimeMs)}-${stats.size}`,
+      etag,
+      refreshedAt: Date.now(),
+      mtimeMs: stats.mtimeMs,
+      size: stats.size,
+    };
+    return parsed;
+  })()
+    .catch((err) => {
+      DATA_CACHE_STATE.data = null;
+      DATA_CACHE_STATE.meta = {
+        version: '',
+        etag: '',
+        refreshedAt: 0,
+        mtimeMs: 0,
+        size: 0,
+      };
+      throw err;
+    })
+    .finally(() => {
+      DATA_CACHE_STATE.promise = null;
+    });
+
+  DATA_CACHE_STATE.promise = loadPromise;
+  await loadPromise;
+  return DATA_CACHE_STATE.data;
+}
+
+async function ensureDataCache(force = false) {
+  if (force) {
+    return refreshDataCache();
+  }
+  if (DATA_CACHE_STATE.data) {
+    return DATA_CACHE_STATE.data;
+  }
+  if (DATA_CACHE_STATE.promise) {
+    await DATA_CACHE_STATE.promise;
+    return DATA_CACHE_STATE.data;
+  }
+  return refreshDataCache();
+}
+
+function invalidateDataCache() {
+  DATA_CACHE_STATE.data = null;
+  DATA_CACHE_STATE.meta = {
+    version: '',
+    etag: '',
+    refreshedAt: 0,
+    mtimeMs: 0,
+    size: 0,
+  };
+}
+
+async function getDataWithMeta(force = false) {
+  await ensureDataCache(force);
+  return {
+    data: DATA_CACHE_STATE.data,
+    meta: { ...DATA_CACHE_STATE.meta },
+  };
+}
+
+try {
+  fsSync.watchFile(DATA_FILE_PATH, { interval: 1000 }, (curr, prev) => {
+    if (curr.mtimeMs === prev.mtimeMs) {
+      return;
+    }
+    invalidateDataCache();
+    refreshDataCache().catch((err) => {
+      console.error('Failed to refresh data cache after file change:', err);
+    });
+  });
+} catch (watchError) {
+  console.warn('Unable to watch data file for changes:', watchError?.message || watchError);
+}
+
+refreshDataCache().catch((err) => {
+  console.warn('Initial data cache warmup failed:', err?.message || err);
+});
 
 // Compress image based on type
 async function compressImage(buffer, type = 'photo') {
@@ -255,18 +364,15 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
 
 // Helper function to read data
 async function readData() {
-  const content = await fs.readFile(DATA_FILE_PATH, 'utf-8');
-  const dataMatch = content.match(/const data = (\[[\s\S]*?\]);/);
-  if (!dataMatch) {
-    throw new Error('Invalid data file format');
-  }
-  return JSON.parse(dataMatch[1]);
+  const cached = await ensureDataCache();
+  return cloneData(cached || []);
 }
 
 // Helper function to write data
 async function writeData(data) {
   const content = `const data = ${JSON.stringify(data, null, 2)};\n\nexport default data;\n`;
   await fs.writeFile(DATA_FILE_PATH, content, 'utf-8');
+  await refreshDataCache();
 }
 
 // Helper functions for site settings
@@ -373,10 +479,33 @@ app.post('/api/add-child', requireAdmin, async (req, res) => {
 // GET all data endpoint (for frontend to fetch latest data)
 app.get('/api/data', async (req, res) => {
   try {
-    const data = await readData();
-    // Prevent caching to always get fresh data
-    res.set('Cache-Control', 'no-store');
-    res.json({ success: true, data });
+  const { data, meta } = await getDataWithMeta();
+  const etag = meta?.etag || '';
+  const quotedEtag = etag ? `"${etag}"` : '';
+
+    if (meta?.version) {
+      res.set('X-Data-Version', String(meta.version));
+    }
+    if (meta?.refreshedAt) {
+      res.set('X-Data-Refreshed-At', new Date(meta.refreshedAt).toISOString());
+    }
+
+    if (etag) {
+      const ifNoneMatch = req.headers['if-none-match'];
+      res.set('ETag', quotedEtag || etag);
+      if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === quotedEtag)) {
+        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+        return res.status(304).end();
+      }
+    }
+
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
+    res.json({
+      success: true,
+      data,
+      version: meta?.version || '',
+      refreshedAt: meta?.refreshedAt || Date.now(),
+    });
   } catch (error) {
     console.error('Error reading data:', error);
     res.status(500).json({ error: 'Failed to read data' });

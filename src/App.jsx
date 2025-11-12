@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import FamilyTree from './components/FamilyTree.jsx';
 import Sidebar from './components/Sidebar.jsx';
@@ -9,6 +9,39 @@ import Home from './pages/Home.jsx';
 import { useTranslation } from './context/LanguageContext.jsx';
 
 const MIN_LOADING_DURATION_MS = 900;
+const TREE_CACHE_KEY = 'familyTreeCache_v2';
+
+const readTreeCache = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(TREE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed?.data)) return null;
+    return parsed;
+  } catch (err) {
+    console.warn('Failed to read family tree cache:', err);
+    return null;
+  }
+};
+
+const persistTreeCache = (entry) => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.setItem(TREE_CACHE_KEY, JSON.stringify(entry));
+  } catch (err) {
+    console.warn('Unable to persist family tree cache:', err);
+  }
+};
+
+const clearTreeCache = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(TREE_CACHE_KEY);
+  } catch (err) {
+    console.warn('Unable to clear family tree cache:', err);
+  }
+};
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -44,9 +77,10 @@ class ErrorBoundary extends React.Component {
 }
 
 const App = () => {
-  const [treeData, setTreeData] = useState([]);
+  const initialTreeCacheSnapshot = useRef(readTreeCache());
+  const [treeData, setTreeData] = useState(() => initialTreeCacheSnapshot.current?.data || []);
   const [siteSettings, setSiteSettings] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !initialTreeCacheSnapshot.current);
   const [error, setError] = useState(null);
   const [adminToken, setAdminToken] = useState(() => localStorage.getItem('adminToken') || '');
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || '');
@@ -54,19 +88,65 @@ const App = () => {
   const isManager = userRole === 'manager';
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { t } = useTranslation();
+  const treeCacheMetaRef = useRef(initialTreeCacheSnapshot.current);
+  const hadInitialCacheRef = useRef(Boolean(initialTreeCacheSnapshot.current));
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    const cached = treeCacheMetaRef.current;
     try {
       setError(null);
-      const res = await apiFetch('/api/data', { headers: { 'Cache-Control': 'no-store' } });
+      const headers = { Accept: 'application/json' };
+      if (!forceRefresh && cached?.etag) {
+        headers['If-None-Match'] = cached.etag;
+      }
+
+      const res = await apiFetch('/api/data', { headers });
+
+      if (res.status === 304) {
+        if (cached?.data) {
+          const refreshedCache = { ...cached, fetchedAt: Date.now() };
+          treeCacheMetaRef.current = refreshedCache;
+          hadInitialCacheRef.current = true;
+          persistTreeCache(refreshedCache);
+          return cached.data;
+        }
+        return fetchData(true);
+      }
+
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to load data');
-      setTreeData(json.data || []);
+
+      const nextData = Array.isArray(json.data) ? json.data : [];
+      setTreeData(nextData);
+
+      const etagHeader = res.headers.get('ETag');
+      const versionHeader = res.headers.get('X-Data-Version');
+      const refreshedAtHeader = res.headers.get('X-Data-Refreshed-At');
+
+      const nextCache = {
+        data: nextData,
+        etag: etagHeader || cached?.etag || json?.etag || '',
+        version: json?.version || versionHeader || '',
+        fetchedAt: Date.now(),
+        refreshedAt: json?.refreshedAt || refreshedAtHeader || null,
+      };
+
+      treeCacheMetaRef.current = nextCache;
+      hadInitialCacheRef.current = true;
+      persistTreeCache(nextCache);
+
+      return nextData;
     } catch (err) {
       console.error('Failed to fetch data:', err);
+      if (forceRefresh) {
+        clearTreeCache();
+        treeCacheMetaRef.current = null;
+        hadInitialCacheRef.current = false;
+      }
       setError(err.message || 'Failed to load data');
+      throw err;
     }
-  }, []);
+  }, [setError]);
 
   const fetchSettings = useCallback(async () => {
     try {
@@ -104,14 +184,48 @@ const App = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let timeoutId = null;
+
     const load = async () => {
-      await checkSession(adminToken);
-      await fetchSettings();
-      await fetchData();
-      if (!cancelled) setLoading(false);
+      const start = Date.now();
+      const hadCacheOnEntry = hadInitialCacheRef.current;
+      try {
+        await checkSession(adminToken);
+        await fetchSettings();
+        await fetchData();
+      } catch (err) {
+        if (!cancelled) {
+          console.warn('Initial data load encountered an issue:', err);
+        }
+      } finally {
+        if (cancelled) return;
+        const finalize = () => {
+          if (!cancelled) setLoading(false);
+        };
+
+        if (!hadCacheOnEntry) {
+          const elapsed = Date.now() - start;
+          const remaining = Math.max(0, MIN_LOADING_DURATION_MS - elapsed);
+          if (remaining > 0) {
+            timeoutId = window.setTimeout(finalize, remaining);
+          } else {
+            finalize();
+          }
+          hadInitialCacheRef.current = true;
+        } else {
+          finalize();
+        }
+      }
     };
-    const timeoutId = setTimeout(load, MIN_LOADING_DURATION_MS);
-    return () => { cancelled = true; clearTimeout(timeoutId); };
+
+    load();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [fetchData, fetchSettings, checkSession, adminToken]);
 
   // Apply site title and favicon dynamically
@@ -179,6 +293,12 @@ const App = () => {
     setUserRole('');
   };
 
+  const handleRetry = () => {
+    fetchData(true).catch(() => {
+      /* no-op: error state already managed within fetchData */
+    });
+  };
+
   if (loading) {
     return (
       <div className="app-root">
@@ -211,7 +331,7 @@ const App = () => {
             <div className="error-card" role="alert">
               <h2>Could not load data</h2>
               <p>{error}</p>
-              <button onClick={fetchData}>Retry</button>
+              <button onClick={handleRetry}>Retry</button>
             </div>
           )}
           <Routes>
@@ -221,7 +341,7 @@ const App = () => {
               element={(
                 <FamilyTree
                   data={treeData}
-                  onDataUpdated={fetchData}
+                  onDataUpdated={() => fetchData(true)}
                   isAdmin={isAdmin}
                   adminToken={adminToken}
                   onLoginSuccess={handleLoginSuccess}
