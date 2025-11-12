@@ -444,6 +444,76 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     });
   };
 
+  // Touch gesture state for pinch-to-zoom
+  const touchStateRef = useRef({
+    active: false,
+    initialDistance: 0,
+    initialScale: 1,
+    centerX: 0,
+    centerY: 0
+  });
+
+  const handleTouchStart = (event) => {
+    if (event.touches.length === 2) {
+      // Two-finger touch for pinch zoom
+      event.preventDefault();
+      const touch1 = event.touches[0];
+      const touch2 = event.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      
+      touchStateRef.current = {
+        active: true,
+        initialDistance: distance,
+        initialScale: transform.scale,
+        centerX,
+        centerY
+      };
+    }
+  };
+
+  const handleTouchMove = (event) => {
+    if (event.touches.length === 2 && touchStateRef.current.active) {
+      event.preventDefault();
+      
+      const touch1 = event.touches[0];
+      const touch2 = event.touches[1];
+      
+      const dx = touch2.clientX - touch1.clientX;
+      const dy = touch2.clientY - touch1.clientY;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      
+      const scaleChange = distance / touchStateRef.current.initialDistance;
+      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, touchStateRef.current.initialScale * scaleChange));
+      
+      if (!canvasRef.current) return;
+      
+      setTransform((prev) => {
+        const rect = canvasRef.current.getBoundingClientRect();
+        const pointerX = centerX - rect.left;
+        const pointerY = centerY - rect.top;
+        const scaleRatio = newScale / prev.scale;
+        const nextX = pointerX - (pointerX - prev.x) * scaleRatio;
+        const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
+        return { scale: newScale, x: nextX, y: nextY };
+      });
+    }
+  };
+
+  const handleTouchEnd = (event) => {
+    if (event.touches.length < 2) {
+      touchStateRef.current.active = false;
+    }
+  };
+
   const handleResetView = () => {
     const initialScale = INITIAL_SCALE;
     const nextX = viewportSize.width / 2 - (layout.width * initialScale) / 2;
@@ -741,6 +811,9 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
             onPointerUp={stopPointer}
             onPointerCancel={stopPointer}
             onWheel={handleWheel}
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
             role="presentation"
           >
             <svg
