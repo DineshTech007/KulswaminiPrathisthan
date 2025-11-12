@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import FamilyTreeNode from './FamilyTreeNode.jsx';
 import MemberDetailModal from './MemberDetailModal.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
@@ -162,11 +162,11 @@ const computeLayout = (members) => {
       const startY = centerY + NODE_HEIGHT / 2;
       const endX = childNode.centerX;
       const endY = childNode.centerY - NODE_HEIGHT / 2;
-      const controlY = (startY + endY) / 2;
+      const midY = (startY + endY) / 2;
 
       lines.push({
         key: `${member.id}-${childId}`,
-        path: `M ${startX} ${startY} C ${startX} ${controlY}, ${endX} ${controlY}, ${endX} ${endY}`,
+        path: `M ${startX} ${startY} L ${startX} ${midY} L ${endX} ${midY} L ${endX} ${endY}`,
       });
     });
   });
@@ -210,6 +210,7 @@ const clampLayoutDimensions = (layout) => {
 
 const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onLoginSuccess, onLogout, siteTitle = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', siteFavicon = '', onSettingsUpdated, onToggleSidebar, role }) => {
   const containerRef = useRef(null);
+  const canvasWrapperRef = useRef(null);
   const canvasRef = useRef(null);
 
   const [layout, setLayout] = useState(DEFAULT_LAYOUT);
@@ -224,6 +225,10 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   const [transform, setTransform] = useState({ scale: INITIAL_SCALE, x: 0, y: 0 });
   const transformRef = useRef(transform);
   const [initialViewApplied, setInitialViewApplied] = useState(false);
+  const [expandedNodes, setExpandedNodes] = useState(() => new Set());
+  const [focusMemberId, setFocusMemberId] = useState(null);
+  const [pendingFocusMemberId, setPendingFocusMemberId] = useState(null);
+  const [focusedBranchMemberIds, setFocusedBranchMemberIds] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -240,6 +245,163 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     hasDragged: false,
   });
 
+  const relationMaps = useMemo(() => {
+    if (!Array.isArray(data)) {
+      return {
+        memberMap: new Map(),
+        childrenMap: new Map(),
+        parentMap: new Map(),
+        rootIds: [],
+      };
+    }
+
+    const memberMap = new Map();
+    const orderMap = new Map();
+    data.forEach((member, index) => {
+      if (member && member.id) {
+        memberMap.set(member.id, member);
+        orderMap.set(member.id, index);
+      }
+    });
+
+    const childrenSetMap = new Map();
+    const parentSetMap = new Map();
+
+    const addRelation = (parentId, childId) => {
+      if (!memberMap.has(parentId) || !memberMap.has(childId)) {
+        return;
+      }
+      if (!childrenSetMap.has(parentId)) {
+        childrenSetMap.set(parentId, new Set());
+      }
+      if (!parentSetMap.has(childId)) {
+        parentSetMap.set(childId, new Set());
+      }
+      childrenSetMap.get(parentId).add(childId);
+      parentSetMap.get(childId).add(parentId);
+    };
+
+    data.forEach((member) => {
+      if (!member || !member.id) {
+        return;
+      }
+      const childrenIds = Array.isArray(member.childrenIds) ? member.childrenIds : [];
+      childrenIds.forEach((childId) => addRelation(member.id, childId));
+    });
+
+    data.forEach((member) => {
+      if (!member || !member.id) {
+        return;
+      }
+      const parentIds = Array.isArray(member.parentIds) ? member.parentIds : [];
+      parentIds.forEach((parentId) => addRelation(parentId, member.id));
+    });
+
+    const childrenMap = new Map();
+    childrenSetMap.forEach((set, parentId) => {
+      childrenMap.set(
+        parentId,
+        Array.from(set).filter((childId) => memberMap.has(childId))
+      );
+    });
+
+    const parentMap = new Map();
+    parentSetMap.forEach((set, childId) => {
+      parentMap.set(
+        childId,
+        Array.from(set).filter((parentId) => memberMap.has(parentId))
+      );
+    });
+
+    const rootIds = [];
+    memberMap.forEach((member, memberId) => {
+      const parents = parentMap.get(memberId);
+      if (!parents || parents.length === 0) {
+        rootIds.push(memberId);
+      }
+    });
+
+    return { memberMap, childrenMap, parentMap, rootIds, orderMap };
+  }, [data]);
+
+  const visibleMembers = useMemo(() => {
+    const { memberMap, childrenMap, rootIds } = relationMaps;
+    if (!memberMap || memberMap.size === 0) {
+      return [];
+    }
+
+    const queue = [...(rootIds.length > 0 ? rootIds : Array.from(memberMap.keys()))];
+    const visited = new Set();
+    const visible = [];
+    const restrictToBranch = focusedBranchMemberIds && focusedBranchMemberIds.size > 0;
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (!memberMap.has(currentId) || visited.has(currentId)) {
+        continue;
+      }
+
+      if (restrictToBranch && !focusedBranchMemberIds.has(currentId)) {
+        continue;
+      }
+
+      visited.add(currentId);
+      visible.push(memberMap.get(currentId));
+
+      const shouldExpand = expandedNodes.has(currentId);
+      if (!shouldExpand) {
+        continue;
+      }
+
+      const children = childrenMap.get(currentId) || [];
+      children.forEach((childId) => {
+        if (!visited.has(childId)) {
+          if (!restrictToBranch || focusedBranchMemberIds.has(childId)) {
+            queue.push(childId);
+          }
+        }
+      });
+    }
+
+    visible.sort((a, b) => {
+      const aIndex = relationMaps.orderMap.get(a.id) ?? 0;
+      const bIndex = relationMaps.orderMap.get(b.id) ?? 0;
+      return aIndex - bIndex;
+    });
+
+    return visible;
+  }, [relationMaps, expandedNodes, focusedBranchMemberIds]);
+
+  useEffect(() => {
+    setExpandedNodes((prev) => {
+      const { memberMap } = relationMaps;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (memberMap.has(id)) {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+    setFocusedBranchMemberIds((prev) => {
+      if (!prev) {
+        return prev;
+      }
+      const { memberMap } = relationMaps;
+      const next = new Set();
+      prev.forEach((id) => {
+        if (memberMap.has(id)) {
+          next.add(id);
+        }
+      });
+      return next;
+    });
+  }, [relationMaps]);
+
+  const visibleMemberIds = useMemo(() => (
+    new Set(visibleMembers.map((member) => member?.id).filter(Boolean))
+  ), [visibleMembers]);
+
   const activePointersRef = useRef(new Map());
   const pinchStateRef = useRef({
     active: false,
@@ -252,6 +414,114 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   useEffect(() => {
     transformRef.current = transform;
   }, [transform]);
+
+  const clampScale = useCallback((value) => (
+    Math.max(MIN_SCALE, Math.min(MAX_SCALE, value))
+  ), []);
+
+  const zoomAroundPoint = useCallback((desiredScale, viewportX, viewportY) => {
+    setTransform((prev) => {
+      const nextScale = clampScale(desiredScale);
+      if (nextScale === prev.scale) {
+        return prev;
+      }
+      const anchorX = (viewportX - prev.x) / prev.scale;
+      const anchorY = (viewportY - prev.y) / prev.scale;
+      const nextX = viewportX - anchorX * nextScale;
+      const nextY = viewportY - anchorY * nextScale;
+      return { scale: nextScale, x: nextX, y: nextY };
+    });
+  }, [clampScale]);
+
+  const zoomAroundViewportCenter = useCallback((desiredScale) => {
+    const wrapperRect = canvasWrapperRef.current?.getBoundingClientRect();
+    if (!wrapperRect) {
+      return;
+    }
+    zoomAroundPoint(desiredScale, wrapperRect.width / 2, wrapperRect.height / 2);
+  }, [zoomAroundPoint]);
+
+  const handleZoomIn = useCallback(() => {
+    const currentScale = transformRef.current.scale;
+    zoomAroundViewportCenter(currentScale * 1.15);
+  }, [zoomAroundViewportCenter]);
+
+  const handleZoomOut = useCallback(() => {
+    const currentScale = transformRef.current.scale;
+    zoomAroundViewportCenter(currentScale * 0.85);
+  }, [zoomAroundViewportCenter]);
+
+  const handleResetView = useCallback(() => {
+    const initialScale = INITIAL_SCALE;
+    const wrapper = canvasWrapperRef.current;
+    const viewportWidth = wrapper ? wrapper.clientWidth : viewportSize.width;
+    const viewportHeight = wrapper ? wrapper.clientHeight : viewportSize.height;
+    const nextX = viewportWidth / 2 - (layout.width * initialScale) / 2;
+    const nextY = viewportHeight / 2 - (layout.height * initialScale) / 2;
+    setTransform({ scale: initialScale, x: nextX, y: nextY });
+  }, [layout.height, layout.width, viewportSize.height, viewportSize.width]);
+
+  const handleZoomReset = useCallback(() => {
+    handleResetView();
+  }, [handleResetView]);
+
+  const toggleNodeExpansion = useCallback((memberId) => {
+    if (!memberId) {
+      return;
+    }
+    setFocusedBranchMemberIds(null);
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(memberId)) {
+        next.delete(memberId);
+      } else {
+        next.add(memberId);
+      }
+      return next;
+    });
+  }, []);
+
+  const buildBranchForMember = useCallback((memberId) => {
+    const { parentMap, childrenMap, memberMap } = relationMaps;
+    const branch = new Set();
+    if (!memberId || !memberMap.has(memberId)) {
+      return branch;
+    }
+
+    const visitAncestors = (currentId) => {
+      if (!currentId || branch.has(currentId)) {
+        return;
+      }
+      branch.add(currentId);
+      const parents = parentMap.get(currentId) || [];
+      parents.forEach(visitAncestors);
+    };
+
+    const visitDescendants = (currentId) => {
+      const children = childrenMap.get(currentId) || [];
+      children.forEach((childId) => {
+        if (!branch.has(childId)) {
+          branch.add(childId);
+          visitDescendants(childId);
+        }
+      });
+    };
+
+    visitAncestors(memberId);
+    visitDescendants(memberId);
+    return branch;
+  }, [relationMaps]);
+
+  const focusMemberById = useCallback((memberId) => {
+    if (!memberId || !relationMaps.memberMap.has(memberId)) {
+      return;
+    }
+    const branch = buildBranchForMember(memberId);
+    setFocusedBranchMemberIds(branch);
+    setExpandedNodes(new Set(branch));
+    setPendingFocusMemberId(memberId);
+    setFocusMemberId(memberId);
+  }, [buildBranchForMember, relationMaps]);
 
   const summary = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) {
@@ -299,7 +569,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   useEffect(() => {
     let cancelled = false;
 
-    if (!Array.isArray(data) || data.length === 0) {
+    if (!Array.isArray(visibleMembers) || visibleMembers.length === 0) {
       setLayout(DEFAULT_LAYOUT);
       setLayoutReady(true);
       setInitialViewApplied(false);
@@ -316,7 +586,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
         return;
       }
       try {
-        const computed = clampLayoutDimensions(computeLayout(data));
+        const computed = clampLayoutDimensions(computeLayout(visibleMembers));
         setLayout(computed);
         setLayoutReady(true);
       } catch (error) {
@@ -330,7 +600,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
       cancelled = true;
       window.cancelAnimationFrame(frameId);
     };
-  }, [data]);
+  }, [visibleMembers]);
 
   useEffect(() => {
     if (!layoutReady) {
@@ -383,6 +653,39 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     setTransform({ scale: initialScale, x: nextX, y: nextY });
     setInitialViewApplied(true);
   }, [layoutReady, mountDone, layout.width, layout.height, viewportSize, initialViewApplied]);
+
+  useEffect(() => {
+    if (!pendingFocusMemberId || !layoutReady) {
+      return;
+    }
+
+    const nodes = layout.nodes || [];
+    const targetNode = nodes.find((node) => node.member?.id === pendingFocusMemberId);
+    if (!targetNode) {
+      return;
+    }
+
+  const targetScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, 1.15));
+  const wrapper = canvasWrapperRef.current;
+  const centerX = wrapper ? wrapper.clientWidth / 2 : viewportSize.width / 2;
+  const centerY = wrapper ? wrapper.clientHeight / 2 : viewportSize.height / 2;
+    const nextX = centerX - targetNode.centerX * targetScale;
+    const nextY = centerY - targetNode.centerY * targetScale;
+
+    window.requestAnimationFrame(() => {
+      setTransform({ scale: targetScale, x: nextX, y: nextY });
+    });
+
+    setPendingFocusMemberId(null);
+  }, [pendingFocusMemberId, layout, layoutReady, viewportSize]);
+
+  useEffect(() => {
+    if (!focusMemberId) {
+      return undefined;
+    }
+    const timeoutId = window.setTimeout(() => setFocusMemberId(null), 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [focusMemberId]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -463,30 +766,24 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
         const distance = Math.sqrt(dx * dx + dy * dy);
         const pinchState = pinchStateRef.current;
 
-        if (!canvasRef.current || pinchState.initialDistance === 0) {
+        if (pinchState.initialDistance === 0) {
+          return;
+        }
+
+        const wrapperRect = canvasWrapperRef.current?.getBoundingClientRect();
+        if (!wrapperRect) {
           return;
         }
 
         event.preventDefault();
 
         const scaleChange = distance / pinchState.initialDistance;
-        const newScale = Math.max(
-          MIN_SCALE,
-          Math.min(MAX_SCALE, pinchState.initialScale * scaleChange)
-        );
+        const desiredScale = pinchState.initialScale * scaleChange;
 
-        const centerX = (points[0].x + points[1].x) / 2;
-        const centerY = (points[0].y + points[1].y) / 2;
+        const centerViewportX = ((points[0].x + points[1].x) / 2) - wrapperRect.left;
+        const centerViewportY = ((points[0].y + points[1].y) / 2) - wrapperRect.top;
 
-        setTransform((prev) => {
-          const rect = canvasRef.current.getBoundingClientRect();
-          const pointerX = centerX - rect.left;
-          const pointerY = centerY - rect.top;
-          const scaleRatio = newScale / prev.scale;
-          const nextX = pointerX - (pointerX - prev.x) * scaleRatio;
-          const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
-          return { scale: newScale, x: nextX, y: nextY };
-        });
+        zoomAroundPoint(desiredScale, centerViewportX, centerViewportY);
         return;
       }
 
@@ -558,31 +855,16 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   };
 
   const handleWheel = (event) => {
-    if (!canvasRef.current) {
+    const wrapperRect = canvasWrapperRef.current?.getBoundingClientRect();
+    if (!wrapperRect) {
       return;
     }
     event.preventDefault();
+    const pointerX = event.clientX - wrapperRect.left;
+    const pointerY = event.clientY - wrapperRect.top;
     const scaleFactor = event.deltaY < 0 ? 1.1 : 0.9;
-    setTransform((prev) => {
-      const nextScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, prev.scale * scaleFactor));
-      if (nextScale === prev.scale) {
-        return prev;
-      }
-      const rect = canvasRef.current.getBoundingClientRect();
-      const pointerX = event.clientX - rect.left;
-      const pointerY = event.clientY - rect.top;
-      const scaleRatio = nextScale / prev.scale;
-      const nextX = pointerX - (pointerX - prev.x) * scaleRatio;
-      const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
-      return { scale: nextScale, x: nextX, y: nextY };
-    });
-  };
-
-  const handleResetView = () => {
-    const initialScale = INITIAL_SCALE;
-    const nextX = viewportSize.width / 2 - (layout.width * initialScale) / 2;
-    const nextY = viewportSize.height / 2 - (layout.height * initialScale) / 2;
-    setTransform({ scale: initialScale, x: nextX, y: nextY });
+    const desiredScale = transformRef.current.scale * scaleFactor;
+    zoomAroundPoint(desiredScale, pointerX, pointerY);
   };
 
   const handleNodePress = (member) => {
@@ -686,6 +968,10 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     if (!query.trim()) {
       setSearchResults([]);
       setShowSearchResults(false);
+      setExpandedNodes(new Set());
+      setFocusMemberId(null);
+      setPendingFocusMemberId(null);
+      setFocusedBranchMemberIds(null);
       return;
     }
 
@@ -701,22 +987,16 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   };
 
   const navigateToMember = (member) => {
-    const node = layout.nodes.find(n => n.member.id === member.id);
-    if (!node) return;
+    if (!member || !member.id) {
+      return;
+    }
 
-    const targetScale = 1.2;
-    const centerX = viewportSize.width / 2;
-    const centerY = viewportSize.height / 2;
-    
-    const targetX = centerX - (node.centerX * targetScale);
-    const targetY = centerY - (node.centerY * targetScale);
-
-    setTransform({ scale: targetScale, x: targetX, y: targetY });
+    focusMemberById(member.id);
     setShowSearchResults(false);
     setSearchQuery('');
-    
-    // Highlight the member by opening their modal after a short delay
-    setTimeout(() => {
+    setSearchResults([]);
+
+    window.setTimeout(() => {
       setSelectedMember(member);
     }, 300);
   };
@@ -841,7 +1121,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
         </div>
       </header>
 
-      <div className="tree-canvas-wrapper">
+      <div className="tree-canvas-wrapper" ref={canvasWrapperRef}>
         {!readyToRender ? (
           <div className="loading-state">
             <div className="spinner" aria-hidden="true" />
@@ -876,21 +1156,61 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
               ))}
             </svg>
 
-            {visibleNodes.map((node) => (
-              <FamilyTreeNode
-                key={node.member.id}
-                member={node.member}
-                onPress={handleNodePress}
-                left={node.left}
-                top={node.top}
-              />
-            ))}
+            {visibleNodes.map((node) => {
+              const memberId = node.member.id;
+              const childIds = relationMaps.childrenMap.get(memberId) || [];
+              const visibleChildCount = childIds.filter((childId) => visibleMemberIds.has(childId)).length;
+              const hiddenChildrenCount = Math.max(0, childIds.length - visibleChildCount);
+              const hasChildren = childIds.length > 0;
+              return (
+                <FamilyTreeNode
+                  key={memberId}
+                  member={node.member}
+                  onPress={handleNodePress}
+                  left={node.left}
+                  top={node.top}
+                  hasChildren={hasChildren}
+                  isExpanded={expandedNodes.has(memberId)}
+                  onToggleExpand={hasChildren ? () => toggleNodeExpansion(memberId) : undefined}
+                  hiddenChildrenCount={hiddenChildrenCount}
+                  isFocused={focusMemberId === memberId}
+                />
+              );
+            })}
           </div>
         ) : (
           <div className="loading-state">
             <p>{t('family.noMembers')}</p>
           </div>
         )}
+        {readyToRender ? (
+          <div className="zoom-control-panel" aria-hidden="false">
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={handleZoomOut}
+              aria-label={t('family.zoomOut')}
+            >
+              −
+            </button>
+            <div className="zoom-indicator">{Math.round(transform.scale * 100)}%</div>
+            <button
+              type="button"
+              className="zoom-btn"
+              onClick={handleZoomIn}
+              aria-label={t('family.zoomIn')}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="zoom-reset-btn"
+              onClick={handleZoomReset}
+            >
+              {t('family.resetView')}
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <MemberDetailModal
