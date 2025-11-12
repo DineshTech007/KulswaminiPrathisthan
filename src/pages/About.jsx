@@ -65,8 +65,12 @@ const About = () => {
                     loading={index === 0 ? 'eager' : 'lazy'}
                     className="h-80 w-full object-cover"
                     onError={(event) => {
+                      console.error('Image failed to load:', src);
                       event.currentTarget.classList.add('hidden');
                       event.currentTarget.setAttribute('aria-hidden', 'true');
+                    }}
+                    onLoad={() => {
+                      console.log('Image loaded successfully:', src);
                     }}
                   />
                   <figcaption className="px-6 py-4 text-center text-sm font-semibold text-slate-600">

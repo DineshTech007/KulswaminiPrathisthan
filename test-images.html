@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Images</title>
+</head>
+<body>
+  <h1>Testing Images from /public/family/</h1>
+  
+  <h2>Image 1: family-gathering-night.jpg</h2>
+  <img src="/family/family-gathering-night.jpg" alt="Family gathering at night" style="max-width: 100%; height: auto; border: 1px solid red;">
+  <p id="status1">Testing...</p>
+  
+  <h2>Image 2: sneh-melava-gathering.jpg</h2>
+  <img src="/family/sneh-melava-gathering.jpg" alt="Sneh Melava gathering" style="max-width: 100%; height: auto; border: 1px solid blue;">
+  <p id="status2">Testing...</p>
+
+  <script>
+    document.querySelectorAll('img').forEach((img, index) => {
+      img.addEventListener('load', () => {
+        document.getElementById('status' + (index + 1)).textContent = '✅ Loaded successfully - ' + img.src;
+      });
+      img.addEventListener('error', () => {
+        document.getElementById('status' + (index + 1)).textContent = '❌ Failed to load - ' + img.src;
+      });
+    });
+  </script>
+</body>
+</html>
