@@ -91,11 +91,21 @@ const enrichEvents = (items) => {
 
 const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
   const [events, setEvents] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [site, setSite] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
   const [activeTab, setActiveTab] = useState('all');
   const { t } = useTranslation();
   const { language } = useLanguage();
+
+  const buildFullName = (member) => {
+    if (!member) return '';
+    const parts = [];
+    if (member.name) parts.push(member.name);
+    if (member.fatherName) parts.push(member.fatherName);
+    if (member.surname) parts.push(member.surname);
+    return parts.filter(Boolean).join(' ');
+  };
 
   const resolveTitle = (item) => {
     if (language === 'mr' && item.titleMr) return item.titleMr;
@@ -170,6 +180,19 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
         if (!cancelled && res.ok) setEvents(Array.isArray(json.items) ? json.items : []);
       } catch {/* ignore */}
       finally { if (!cancelled) setLoading(false); }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load members for full name display
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await apiFetch('/api/members', { headers: { 'Cache-Control': 'no-store' } });
+        const json = await res.json();
+        if (!cancelled && res.ok) setMembers(Array.isArray(json.items) ? json.items : []);
+      } catch {/* ignore */}
     })();
     return () => { cancelled = true; };
   }, []);
@@ -271,6 +294,17 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
             const displayTitle = resolveTitle(item);
             const displaySummary = resolveSummary(item) || item.description;
             const badgeLabel = item.isBirthday ? t('events.badge.birthday') : item.isAnniversary ? t('events.badge.anniversary') : item.isPast ? t('events.badge.past') : t('events.badge.upcoming');
+            
+            // Find member for full name and status
+            const memberMatch = members.find(m => 
+              m.name && item.title && 
+              (m.name.toLowerCase().includes(item.title.toLowerCase()) || 
+               item.title.toLowerCase().includes(m.name.toLowerCase()))
+            );
+            const fullNameDisplay = memberMatch ? buildFullName(memberMatch) : displayTitle;
+            const isDeceased = memberMatch?.isDeceased || false;
+            const isBirthday = item.isBirthday;
+            
             return (
               <li
                 key={item.id}
@@ -352,8 +386,9 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                         )
                       )}
                       <div className="event-card__content">
-                        <h3 className="event-card__title event-title">{displayTitle}</h3>
+                        <h3 className="event-card__title event-title">{fullNameDisplay}</h3>
                         {item.location && <div className="event-card__location">{item.location}</div>}
+                        {isBirthday && !isDeceased && <p className="event-desc" style={{color: '#10b981', fontWeight: 600}}>🎂 {t('events.birthdayWish')}</p>}
                         {displaySummary && <p className="event-desc">{displaySummary}</p>}
                       </div>
                     </div>
@@ -384,6 +419,30 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                             title="Delete event"
                             onClick={async () => {
                               if (!confirm('Delete this event?')) return;
+                              try {
+                                  const res = await apiFetch(`/api/events/${item.id}`, { method: 'DELETE', headers: { 'X-Admin-Token': token } });
+                                if (res.ok) {
+                                  const r = await apiFetch('/api/events', { headers: { 'Cache-Control': 'no-store' } });
+                                  const j = await r.json();
+                                  if (r.ok) setEvents(Array.isArray(j.items) ? j.items : []);
+                                  else setEvents(arr => arr.filter(x => x.id !== item.id));
+                                } else {
+                                  const j = await res.json();
+                                  alert(j.error || 'Delete failed');
+                                }
+                              } catch {
+                                alert('Delete failed');
+                              }
+                            }}
+                          >✕</button>
+                        )}
+                        {isAdmin && (item.isBirthday || item.isAnniversary) && (
+                          <button
+                            type="button"
+                            className="event-action-btn event-action-btn--delete"
+                            title="Delete birthday/anniversary"
+                            onClick={async () => {
+                              if (!confirm('Delete this birthday/anniversary?')) return;
                               try {
                                   const res = await apiFetch(`/api/events/${item.id}`, { method: 'DELETE', headers: { 'X-Admin-Token': token } });
                                 if (res.ok) {
