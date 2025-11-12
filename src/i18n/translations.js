@@ -48,6 +48,7 @@ const translations = {
     'family.resetView': 'दृश्य रीसेट करा',
   'family.zoomIn': 'झूम इन',
   'family.zoomOut': 'झूम आउट',
+  'family.expandTip': 'वंशावळ पाहण्यासाठी येथे क्लिक करा',
     'family.menu': 'मेनू',
     'family.editTitle': 'शीर्षक बदला',
     'family.changeIcon': 'चिन्ह बदला',
