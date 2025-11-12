@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
 const CARD_WIDTH = 160;
@@ -23,7 +23,19 @@ const FamilyTreeNode = ({
   hiddenChildrenCount = 0,
   isFocused = false,
 }) => {
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showTooltip, setShowTooltip] = useState(hasChildren);
+  
+  useEffect(() => {
+    if (!hasChildren) return;
+    
+    // Auto-hide tooltip after 4 seconds
+    const timer = setTimeout(() => {
+      setShowTooltip(false);
+    }, 4000);
+    
+    return () => clearTimeout(timer);
+  }, [hasChildren]);
+  
   const imageUrl = member.notes?.match(/Image:\s*(.*?)(?:\s*\||$)/)?.[1]?.trim();
 
   const handleClick = (event) => {
@@ -42,6 +54,7 @@ const FamilyTreeNode = ({
 
   const handleToggle = (event) => {
     event.stopPropagation();
+    setShowTooltip(false);
     if (onToggleExpand) {
       onToggleExpand();
     }
@@ -76,7 +89,7 @@ const FamilyTreeNode = ({
         tabIndex={0}
       >
         {hasChildren ? (
-          <div className="node-toggle-wrapper" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)}>
+          <div className="node-toggle-wrapper" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} onTouchStart={() => setShowTooltip(false)}>
             <button
               type="button"
               className={`node-toggle ${isExpanded ? 'expanded' : 'collapsed'}`}
