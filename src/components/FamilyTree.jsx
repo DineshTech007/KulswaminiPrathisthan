@@ -383,6 +383,10 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   }, [showSearchResults]);
 
   const handlePointerDown = (event) => {
+    // Ignore pointer events if touch pinch is active
+    if (touchStateRef.current?.active) {
+      return;
+    }
     if (event.button !== undefined && event.button !== 0) {
       return;
     }
@@ -399,6 +403,10 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   };
 
   const handlePointerMove = (event) => {
+    // Ignore pointer events if touch pinch is active
+    if (touchStateRef.current?.active) {
+      return;
+    }
     const state = pointerStateRef.current;
     if (!state.active || state.pointerId !== event.pointerId) {
       return;
@@ -450,13 +458,21 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     initialDistance: 0,
     initialScale: 1,
     centerX: 0,
-    centerY: 0
+    centerY: 0,
+    lastDistance: 0
   });
 
   const handleTouchStart = (event) => {
     if (event.touches.length === 2) {
-      // Two-finger touch for pinch zoom
+      // Two-finger touch for pinch zoom - prevent default to stop interference
       event.preventDefault();
+      event.stopPropagation();
+      
+      // Cancel any active pointer/drag operations
+      if (pointerStateRef.current?.active) {
+        pointerStateRef.current.active = false;
+      }
+      
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
       
@@ -470,16 +486,21 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
       touchStateRef.current = {
         active: true,
         initialDistance: distance,
+        lastDistance: distance,
         initialScale: transform.scale,
         centerX,
         centerY
       };
+    } else if (event.touches.length === 1) {
+      // Single touch - reset pinch state
+      touchStateRef.current.active = false;
     }
   };
 
   const handleTouchMove = (event) => {
     if (event.touches.length === 2 && touchStateRef.current.active) {
       event.preventDefault();
+      event.stopPropagation();
       
       const touch1 = event.touches[0];
       const touch2 = event.touches[1];
@@ -491,8 +512,11 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
       const centerX = (touch1.clientX + touch2.clientX) / 2;
       const centerY = (touch1.clientY + touch2.clientY) / 2;
       
+      // Use ratio from initial distance for smoother scaling
       const scaleChange = distance / touchStateRef.current.initialDistance;
       const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, touchStateRef.current.initialScale * scaleChange));
+      
+      touchStateRef.current.lastDistance = distance;
       
       if (!canvasRef.current) return;
       

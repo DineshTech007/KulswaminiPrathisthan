@@ -618,6 +618,8 @@
   position: relative;
   flex: 1;
   overflow: hidden;
+  touch-action: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tree-canvas {
@@ -627,6 +629,11 @@
   cursor: grab;
   touch-action: none;
   will-change: transform;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .tree-canvas:active {
@@ -673,6 +680,11 @@
   transition: transform 0.18s ease, box-shadow 0.18s ease;
   font: inherit;
   color: inherit;
+  touch-action: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
 .tree-node-card:hover {
