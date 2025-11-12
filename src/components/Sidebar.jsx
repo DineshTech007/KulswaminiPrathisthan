@@ -237,7 +237,7 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                       alert(err.message || 'Failed to upload icon');
                     }
                     e.target.value = '';
-                  }}}
+                  }}
                 />
                 🎨 {t('family.changeIcon')}
               </label>
