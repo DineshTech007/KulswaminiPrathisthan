@@ -12,7 +12,7 @@ const HORIZONTAL_GAP = 90;
 const VERTICAL_GAP = 150;
 const CANVAS_PADDING = 400;
 const INITIAL_SCALE = 0.85;
-const MIN_SCALE = 0.45;
+const MIN_SCALE = 0.15;
 const MAX_SCALE = 2.1;
 const MIN_LOADING_DURATION_MS = 750;
 const MAX_CANVAS_DIMENSION = 12000;
@@ -599,7 +599,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     }
 
     setLayoutReady(false);
-    setInitialViewApplied(false);
+    // Don't reset initialViewApplied when expanding/collapsing - keep user's current zoom/pan
 
     const frameId = window.requestAnimationFrame(() => {
       if (cancelled) {
