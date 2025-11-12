@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
@@ -13,6 +13,9 @@ const getInitials = (name) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+// Track which nodes have already shown the tooltip
+const shownTooltips = new Set();
+
 const FamilyTreeNode = ({
   member,
   onPress,
@@ -25,10 +28,18 @@ const FamilyTreeNode = ({
   isFocused = false,
 }) => {
   const { t } = useTranslation();
-  const [showTooltip, setShowTooltip] = useState(hasChildren);
+  const [showTooltip, setShowTooltip] = useState(false);
+  const hasShownRef = useRef(false);
   
   useEffect(() => {
-    if (!hasChildren) return;
+    // Only show tooltip once per node, and only if not expanded and has children
+    if (!hasChildren || isExpanded || hasShownRef.current || shownTooltips.has(member.id)) {
+      return;
+    }
+    
+    hasShownRef.current = true;
+    shownTooltips.add(member.id);
+    setShowTooltip(true);
     
     // Auto-hide tooltip after 4 seconds
     const timer = setTimeout(() => {
@@ -36,7 +47,7 @@ const FamilyTreeNode = ({
     }, 4000);
     
     return () => clearTimeout(timer);
-  }, [hasChildren]);
+  }, [hasChildren, isExpanded, member.id]);
   
   const imageUrl = member.notes?.match(/Image:\s*(.*?)(?:\s*\||$)/)?.[1]?.trim();
 

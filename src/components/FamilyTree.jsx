@@ -232,6 +232,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [showSearchTooltip, setShowSearchTooltip] = useState(true);
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -244,6 +245,14 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     baseY: 0,
     hasDragged: false,
   });
+
+  // Auto-hide search tooltip after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSearchTooltip(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const relationMaps = useMemo(() => {
     if (!Array.isArray(data)) {
@@ -480,7 +489,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     if (!memberId) {
       return;
     }
-    setFocusedBranchMemberIds(null);
+    // Don't reset focusedBranchMemberIds when toggling - just expand/collapse
     setExpandedNodes((prev) => {
       const next = new Set(prev);
       if (next.has(memberId)) {
@@ -1046,39 +1055,6 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
           </p>
         </div>
         <div className="header-search-actions">
-          <div className="search-container">
-            <input
-              type="text"
-              className="search-input"
-              placeholder={t('family.searchPlaceholder')}
-              value={searchQuery}
-              onChange={(e) => handleSearch(e.target.value)}
-              onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
-              lang={language}
-              autoComplete="off"
-            />
-            <span className="search-icon">🔍</span>
-            {showSearchResults && searchResults.length > 0 && (
-              <div className="search-results">
-                {searchResults.map((member) => (
-                  <button
-                    key={member.id}
-                    type="button"
-                    className="search-result-item"
-                    onClick={() => navigateToMember(member)}
-                  >
-                    <div className="result-names">
-                      <span className="result-name">{member.name}</span>
-                      {member.englishName && (
-                        <span className="result-english-name">({member.englishName})</span>
-                      )}
-                    </div>
-                    <span className="result-gen">Gen {member.generation}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
           <div className="header-actions top-right-actions">
               <LanguageSwitcher />
               <button type="button" className="menu-button" onClick={onToggleSidebar} title={t('family.menu')} aria-label={t('family.menu')}>☰</button>
@@ -1200,15 +1176,59 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
           </div>
         )}
         {readyToRender ? (
-          <div className="zoom-control-panel" aria-hidden="false">
-            <button
-              type="button"
-              className="zoom-btn"
-              onClick={handleZoomOut}
-              aria-label={t('family.zoomOut')}
-            >
-              −
-            </button>
+          <>
+            <div className="floating-search-panel">
+              <div className="search-container">
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder={t('family.searchPlaceholder')}
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onFocus={() => {
+                    setShowSearchTooltip(false);
+                    if (searchResults.length > 0) setShowSearchResults(true);
+                  }}
+                  lang={language}
+                  autoComplete="off"
+                />
+                <span className="search-icon">🔍</span>
+                {showSearchTooltip && (
+                  <div className="search-tooltip">
+                    {t('family.searchTip')}
+                  </div>
+                )}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="search-results">
+                    {searchResults.map((member) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        className="search-result-item"
+                        onClick={() => navigateToMember(member)}
+                      >
+                        <div className="result-names">
+                          <span className="result-name">{member.name}</span>
+                          {member.englishName && (
+                            <span className="result-english-name">({member.englishName})</span>
+                          )}
+                        </div>
+                        <span className="result-gen">Gen {member.generation}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="zoom-control-panel" aria-hidden="false">
+              <button
+                type="button"
+                className="zoom-btn"
+                onClick={handleZoomOut}
+                aria-label={t('family.zoomOut')}
+              >
+                −
+              </button>
             <div className="zoom-indicator">{Math.round(transform.scale * 100)}%</div>
             <button
               type="button"
@@ -1226,6 +1246,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
               {t('family.resetView')}
             </button>
           </div>
+          </>
         ) : null}
       </div>
 
