@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
 const CARD_WIDTH = 160;
@@ -22,6 +23,7 @@ const FamilyTreeNode = ({
   hiddenChildrenCount = 0,
   isFocused = false,
 }) => {
+  const [showTooltip, setShowTooltip] = useState(false);
   const imageUrl = member.notes?.match(/Image:\s*(.*?)(?:\s*\||$)/)?.[1]?.trim();
 
   const handleClick = (event) => {
@@ -74,14 +76,21 @@ const FamilyTreeNode = ({
         tabIndex={0}
       >
         {hasChildren ? (
-          <button
-            type="button"
-            className={`node-toggle ${isExpanded ? 'expanded' : 'collapsed'}`}
-            onClick={handleToggle}
-            aria-label={toggleLabel}
-          >
-            {isExpanded ? '-' : '+'}
-          </button>
+          <div className="node-toggle-wrapper" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)}>
+            <button
+              type="button"
+              className={`node-toggle ${isExpanded ? 'expanded' : 'collapsed'}`}
+              onClick={handleToggle}
+              aria-label={toggleLabel}
+            >
+              {isExpanded ? '-' : '+'}
+            </button>
+            {showTooltip && (
+              <div className="node-toggle-tooltip">
+                {isExpanded ? 'Collapse' : 'Expand'} branch
+              </div>
+            )}
+          </div>
         ) : null}
         <div className="node-avatar">
           {imageUrl ? (
