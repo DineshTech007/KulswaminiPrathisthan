@@ -20,6 +20,7 @@
   display: flex;
   flex-direction: column;
   transition: left 0.25s ease;
+  touch-action: pan-y;
 }
 .app-sidebar.open { left: 0; }
 .sidebar-inner { 
@@ -29,6 +30,8 @@
   padding: 20px 22px 40px;
   scrollbar-width: thin;
   scrollbar-color: #cbd5e1 #f1f5f9;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 .sidebar-inner::-webkit-scrollbar {
   width: 8px;

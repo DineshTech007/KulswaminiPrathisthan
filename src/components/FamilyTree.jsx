@@ -411,6 +411,17 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     centerY: 0,
   });
 
+  const isInteractivePointerTarget = (target) => {
+    if (!target) {
+      return false;
+    }
+    return Boolean(
+      target.closest(
+        '.tree-node-card, .node-toggle, .search-container, .zoom-control-panel, .menu-button, .header-actions, .language-switcher'
+      )
+    );
+  };
+
   useEffect(() => {
     transformRef.current = transform;
   }, [transform]);
@@ -699,6 +710,11 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   }, [showSearchResults]);
 
   const handlePointerDown = (event) => {
+    if (event.pointerType !== 'touch' && isInteractivePointerTarget(event.target)) {
+      pointerStateRef.current.active = false;
+      return;
+    }
+
     if (event.pointerType === 'touch') {
       activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
 
