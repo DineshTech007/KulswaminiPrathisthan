@@ -127,7 +127,6 @@ const translations = {
     'home.feed.noUpdatesCopy': 'प्रशासक बातम्या किंवा कार्यक्रम जोडल्यावर ते येथे दिसतील. तोपर्यंत वंशावळाचा आनंद घ्या किंवा आठवणी शेअर करा.',
     'home.feed.ctaTree': 'वंशावळ पहा',
     'home.feed.ctaNews': 'बातमी जोडा',
-    'home.loading': 'लोड होत आहे…'
   },
   en: {
     'language.switcher.label': 'Language',
@@ -257,7 +256,6 @@ const translations = {
     'home.feed.noUpdatesCopy': 'Once admins add news or events, they will appear here. Meanwhile you can explore the family tree or share a story.',
     'home.feed.ctaTree': 'Go to Family Tree',
     'home.feed.ctaNews': 'Post a News Update',
-    'home.loading': 'Loading…'
   }
 };
 

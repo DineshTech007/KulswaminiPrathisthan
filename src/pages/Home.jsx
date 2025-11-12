@@ -87,7 +87,7 @@ const Home = () => {
   const hasFeed = curatedFeed.length > 0;
 
   if (loading) {
-    return <div className="page-card full-page"><p>{t('home.loading')}</p></div>;
+    return <div className="page-card full-page"><p>{t('app.loading')}</p></div>;
   }
 
   return (
