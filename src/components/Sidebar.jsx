@@ -31,6 +31,22 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
     return item.summary || item.description || '';
   };
 
+  // Filter out expired news and events (dates in the past)
+  const isDatePast = (dateStr) => {
+    if (!dateStr) return false;
+    try {
+      const itemDate = new Date(dateStr);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return itemDate < today;
+    } catch {
+      return false;
+    }
+  };
+
+  const futureNews = news.filter(item => !isDatePast(item.date));
+  const futureEvents = events.filter(item => !isDatePast(item.date));
+
   useEffect(() => {
     const fetchNews = async () => {
       try {
@@ -63,10 +79,13 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
   useEffect(() => {
     if (!open) return;
 
-    // Close sidebar on outside click
+    // Close sidebar on outside click - add slight delay to allow event to propagate
     const handleClickOutside = (e) => {
       if (sidebarRef.current && !sidebarRef.current.contains(e.target)) {
-        onClose?.();
+        // Check if click is on the menu button (don't close on it)
+        if (!e.target.closest('.menu-button')) {
+          onClose?.();
+        }
       }
     };
 
@@ -87,14 +106,13 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
       setSwipeStart(0);
     };
 
-    setTimeout(() => {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleTouchStart);
-      document.addEventListener('touchend', handleTouchEnd);
-    }, 0);
+    // Use capture phase to ensure we catch clicks
+    document.addEventListener('click', handleClickOutside, true);
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('click', handleClickOutside, true);
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
@@ -156,8 +174,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
         <div className="sidebar-section">
           <h4>{t('sidebar.latestNews')}</h4>
           <ul className="sidebar-list">
-            {news.length === 0 && <li className="muted">{t('sidebar.noNews')}</li>}
-            {news.map(item => (
+            {futureNews.length === 0 && <li className="muted">{t('sidebar.noNews')}</li>}
+            {futureNews.map(item => (
               <li key={item.id} style={{display:'flex', alignItems:'center', gap:8, justifyContent:'space-between'}}>
                 <div style={{minWidth:0}}>
                   <Link to="/news" className="sidebar-item-title">{resolveTitle(item)}</Link>
@@ -228,8 +246,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
         <div className="sidebar-section">
           <h4>{t('sidebar.upcomingEvents')}</h4>
           <ul className="sidebar-list">
-            {events.length === 0 && <li className="muted">{t('sidebar.noEvents')}</li>}
-            {events.map(item => (
+            {futureEvents.length === 0 && <li className="muted">{t('sidebar.noEvents')}</li>}
+            {futureEvents.map(item => (
               <li key={item.id} style={{display:'flex', alignItems:'center', gap:8, justifyContent:'space-between'}}>
                 <div style={{minWidth:0}}>
                   <Link to="/events" className="sidebar-item-title">{resolveTitle(item)}</Link>

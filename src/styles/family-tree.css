@@ -51,7 +51,16 @@
 .sidebar-link { text-decoration:none; padding:10px 14px; border-radius:10px; background:#f8fafc; color:#4338ca; font-weight:600; font-size:14px; border:1px solid #e2e8f0; }
 .sidebar-link:hover { background:#eef2ff; }
 .sidebar-section { margin-top:18px; }
-.sidebar-section h4 { margin:0 0 10px; font-size:15px; font-weight:700; color:#334155; }
+.sidebar-section h4 { 
+  margin: 0 0 10px; 
+  font-size: 15px; 
+  font-weight: 700; 
+  color: #ffffff; 
+  background: linear-gradient(135deg, #6366f1, #4338ca);
+  padding: 10px 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 16px rgba(79, 70, 229, 0.25);
+}
 .sidebar-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:10px; }
 .sidebar-item-title { display:block; font-size:14px; font-weight:600; color:#1e293b; text-decoration:none; margin-bottom:4px; }
 .sidebar-item-title:hover { text-decoration:underline; }

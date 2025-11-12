@@ -152,6 +152,18 @@ const App = () => {
     setFavicon(siteSettings.faviconDataUrl);
   }, [siteSettings]);
 
+  useEffect(() => {
+    // Prevent body scroll when sidebar is open
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [sidebarOpen]);
+
   const handleLoginSuccess = async (token, role) => {
     localStorage.setItem('adminToken', token);
     if (role) localStorage.setItem('userRole', role);

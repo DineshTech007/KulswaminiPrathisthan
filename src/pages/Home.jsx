@@ -7,7 +7,6 @@ import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
 const Home = () => {
   const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [site, setSite] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
   const { t } = useTranslation();
   const { language } = useLanguage();
@@ -28,10 +27,6 @@ const Home = () => {
         }
       } catch {
         // ignore fetch errors for the landing view
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
       }
     })();
     return () => { cancelled = true; };
@@ -85,10 +80,6 @@ const Home = () => {
   }), [news.length, events.length, curatedFeed]);
 
   const hasFeed = curatedFeed.length > 0;
-
-  if (loading) {
-    return <div className="page-card full-page"><p>{t('app.loading')}</p></div>;
-  }
 
   return (
     <div className="page-card full-page home-feed">
