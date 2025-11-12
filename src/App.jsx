@@ -172,7 +172,7 @@ const App = () => {
       <div className="app-root">
         <div className="loading-card">
           <div className="spinner" aria-hidden="true" />
-          <p>{t('app.loadingTree')}</p>
+          <p>{t('app.loading')}</p>
         </div>
       </div>
     );
