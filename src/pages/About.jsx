@@ -7,12 +7,14 @@ const About = () => {
   const familyPhotos = useMemo(
     () => [
       {
-        src: '/family/family-temple-gathering.jpg',
+        src: '/family/family-gathering-night.jpg',
         caption: t('about.gallery.temple'),
+        alt: 'Family gathering at temple courtyard during night celebration',
       },
       {
-        src: '/family/family-sneh-melava.jpg',
+        src: '/family/sneh-melava-gathering.jpg',
         caption: t('about.gallery.hall'),
+        alt: 'Family gathering during Sneh Melava celebration in hall',
       },
     ],
     [t]
@@ -49,7 +51,7 @@ const About = () => {
               {t('about.gallery.subheading')}
             </p>
             <div className="mt-6 flex flex-col items-center gap-8">
-              {familyPhotos.map(({ src, caption }, index) => (
+              {familyPhotos.map(({ src, caption, alt }, index) => (
                 <motion.figure
                   key={src}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -59,7 +61,7 @@ const About = () => {
                 >
                   <img
                     src={src}
-                    alt={caption}
+                    alt={alt}
                     loading={index === 0 ? 'eager' : 'lazy'}
                     className="h-80 w-full object-cover"
                     onError={(event) => {
