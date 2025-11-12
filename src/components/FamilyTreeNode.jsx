@@ -21,10 +21,6 @@ const FamilyTreeNode = ({ member, onPress, left, top }) => {
     }
   };
 
-  const handlePointerDown = (event) => {
-    event.stopPropagation();
-  };
-
   return (
     <div
       className="tree-node"
@@ -35,7 +31,6 @@ const FamilyTreeNode = ({ member, onPress, left, top }) => {
         type="button" 
         className="tree-node-card" 
         onClick={handleClick}
-        onPointerDown={handlePointerDown}
       >
         <div className="node-avatar">
           {imageUrl ? (

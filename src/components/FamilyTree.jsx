@@ -223,6 +223,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   const [selectedMember, setSelectedMember] = useState(null);
   const [viewportSize, setViewportSize] = useState({ width: 1200, height: 800 });
   const [transform, setTransform] = useState({ scale: INITIAL_SCALE, x: 0, y: 0 });
+  const transformRef = useRef(transform);
   const [initialViewApplied, setInitialViewApplied] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -239,6 +240,19 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     baseY: 0,
     hasDragged: false,
   });
+
+  const activePointersRef = useRef(new Map());
+  const pinchStateRef = useRef({
+    active: false,
+    initialDistance: 0,
+    initialScale: INITIAL_SCALE,
+    centerX: 0,
+    centerY: 0,
+  });
+
+  useEffect(() => {
+    transformRef.current = transform;
+  }, [transform]);
 
   const summary = useMemo(() => {
     if (!Array.isArray(data) || data.length === 0) {
@@ -383,30 +397,116 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   }, [showSearchResults]);
 
   const handlePointerDown = (event) => {
-    // Ignore pointer events if touch pinch is active
-    if (touchStateRef.current?.active) {
+    if (event.pointerType === 'touch') {
+      activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (activePointersRef.current.size === 1) {
+        const currentTransform = transformRef.current;
+        pointerStateRef.current = {
+          active: true,
+          pointerId: event.pointerId,
+          originX: event.clientX,
+          originY: event.clientY,
+          baseX: currentTransform.x,
+          baseY: currentTransform.y,
+          hasDragged: false,
+        };
+      } else if (activePointersRef.current.size === 2) {
+        const currentTransform = transformRef.current;
+        const points = Array.from(activePointersRef.current.values());
+        const dx = points[1].x - points[0].x;
+        const dy = points[1].y - points[0].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const centerX = (points[0].x + points[1].x) / 2;
+        const centerY = (points[0].y + points[1].y) / 2;
+
+        pinchStateRef.current = {
+          active: true,
+          initialDistance: distance || 1,
+          initialScale: currentTransform.scale,
+          centerX,
+          centerY,
+        };
+        pointerStateRef.current.active = false;
+      }
       return;
     }
+
     if (event.button !== undefined && event.button !== 0) {
       return;
     }
+
+    const currentTransform = transformRef.current;
     pointerStateRef.current = {
       active: true,
       pointerId: event.pointerId,
       originX: event.clientX,
       originY: event.clientY,
-      baseX: transform.x,
-      baseY: transform.y,
+      baseX: currentTransform.x,
+      baseY: currentTransform.y,
       hasDragged: false,
     };
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
   const handlePointerMove = (event) => {
-    // Ignore pointer events if touch pinch is active
-    if (touchStateRef.current?.active) {
+    if (event.pointerType === 'touch') {
+      if (!activePointersRef.current.has(event.pointerId)) {
+        return;
+      }
+
+      activePointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+      if (pinchStateRef.current.active && activePointersRef.current.size >= 2) {
+        const points = Array.from(activePointersRef.current.values()).slice(0, 2);
+        const dx = points[1].x - points[0].x;
+        const dy = points[1].y - points[0].y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const pinchState = pinchStateRef.current;
+
+        if (!canvasRef.current || pinchState.initialDistance === 0) {
+          return;
+        }
+
+        event.preventDefault();
+
+        const scaleChange = distance / pinchState.initialDistance;
+        const newScale = Math.max(
+          MIN_SCALE,
+          Math.min(MAX_SCALE, pinchState.initialScale * scaleChange)
+        );
+
+        const centerX = (points[0].x + points[1].x) / 2;
+        const centerY = (points[0].y + points[1].y) / 2;
+
+        setTransform((prev) => {
+          const rect = canvasRef.current.getBoundingClientRect();
+          const pointerX = centerX - rect.left;
+          const pointerY = centerY - rect.top;
+          const scaleRatio = newScale / prev.scale;
+          const nextX = pointerX - (pointerX - prev.x) * scaleRatio;
+          const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
+          return { scale: newScale, x: nextX, y: nextY };
+        });
+        return;
+      }
+
+      const state = pointerStateRef.current;
+      if (!state.active || state.pointerId !== event.pointerId) {
+        return;
+      }
+
+      const dx = event.clientX - state.originX;
+      const dy = event.clientY - state.originY;
+
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+        state.hasDragged = true;
+        event.preventDefault();
+        setTransform((prev) => ({ ...prev, x: state.baseX + dx, y: state.baseY + dy }));
+      }
       return;
     }
+
     const state = pointerStateRef.current;
     if (!state.active || state.pointerId !== event.pointerId) {
       return;
@@ -414,7 +514,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
     const dx = event.clientX - state.originX;
     const dy = event.clientY - state.originY;
     const distance = Math.sqrt(dx * dx + dy * dy);
-    
+
     if (distance > 5) {
       state.hasDragged = true;
       event.preventDefault();
@@ -423,12 +523,39 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   };
 
   const stopPointer = (event) => {
+    if (event.pointerType === 'touch') {
+      activePointersRef.current.delete(event.pointerId);
+
+      if (pinchStateRef.current.active && activePointersRef.current.size < 2) {
+        pinchStateRef.current.active = false;
+      }
+
+      if (activePointersRef.current.size === 1) {
+        const [remainingId, point] = Array.from(activePointersRef.current.entries())[0];
+        const currentTransform = transformRef.current;
+        pointerStateRef.current = {
+          active: true,
+          pointerId: remainingId,
+          originX: point.x,
+          originY: point.y,
+          baseX: currentTransform.x,
+          baseY: currentTransform.y,
+          hasDragged: false,
+        };
+      } else if (activePointersRef.current.size === 0) {
+        pointerStateRef.current.active = false;
+      }
+      return;
+    }
+
     const state = pointerStateRef.current;
     if (state.pointerId !== event.pointerId) {
       return;
     }
     state.active = false;
-    event.currentTarget.releasePointerCapture(event.pointerId);
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
 
   const handleWheel = (event) => {
@@ -450,92 +577,6 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
       const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
       return { scale: nextScale, x: nextX, y: nextY };
     });
-  };
-
-  // Touch gesture state for pinch-to-zoom
-  const touchStateRef = useRef({
-    active: false,
-    initialDistance: 0,
-    initialScale: 1,
-    centerX: 0,
-    centerY: 0,
-    lastDistance: 0
-  });
-
-  const handleTouchStart = (event) => {
-    if (event.touches.length === 2) {
-      // Two-finger touch for pinch zoom - prevent default to stop interference
-      event.preventDefault();
-      event.stopPropagation();
-      
-      // Cancel any active pointer/drag operations
-      if (pointerStateRef.current?.active) {
-        pointerStateRef.current.active = false;
-      }
-      
-      const touch1 = event.touches[0];
-      const touch2 = event.touches[1];
-      
-      const dx = touch2.clientX - touch1.clientX;
-      const dy = touch2.clientY - touch1.clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-      
-      touchStateRef.current = {
-        active: true,
-        initialDistance: distance,
-        lastDistance: distance,
-        initialScale: transform.scale,
-        centerX,
-        centerY
-      };
-    } else if (event.touches.length === 1) {
-      // Single touch - reset pinch state
-      touchStateRef.current.active = false;
-    }
-  };
-
-  const handleTouchMove = (event) => {
-    if (event.touches.length === 2 && touchStateRef.current.active) {
-      event.preventDefault();
-      event.stopPropagation();
-      
-      const touch1 = event.touches[0];
-      const touch2 = event.touches[1];
-      
-      const dx = touch2.clientX - touch1.clientX;
-      const dy = touch2.clientY - touch1.clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-      
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
-      
-      // Use ratio from initial distance for smoother scaling
-      const scaleChange = distance / touchStateRef.current.initialDistance;
-      const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, touchStateRef.current.initialScale * scaleChange));
-      
-      touchStateRef.current.lastDistance = distance;
-      
-      if (!canvasRef.current) return;
-      
-      setTransform((prev) => {
-        const rect = canvasRef.current.getBoundingClientRect();
-        const pointerX = centerX - rect.left;
-        const pointerY = centerY - rect.top;
-        const scaleRatio = newScale / prev.scale;
-        const nextX = pointerX - (pointerX - prev.x) * scaleRatio;
-        const nextY = pointerY - (pointerY - prev.y) * scaleRatio;
-        return { scale: newScale, x: nextX, y: nextY };
-      });
-    }
-  };
-
-  const handleTouchEnd = (event) => {
-    if (event.touches.length < 2) {
-      touchStateRef.current.active = false;
-    }
   };
 
   const handleResetView = () => {
@@ -835,9 +876,6 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
             onPointerUp={stopPointer}
             onPointerCancel={stopPointer}
             onWheel={handleWheel}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
             role="presentation"
           >
             <svg
