@@ -349,12 +349,21 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
     
     console.log(`✅ Cloudinary upload success: ${result.secure_url}`);
     
+    // Add timestamp to URL to prevent caching issues
+    const urlWithTimestamp = `${result.secure_url}?t=${Date.now()}`;
+    
+    // Set cache-control header for the response to prevent caching of this specific upload response
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    
     return res.json({ 
-      url: result.secure_url, 
+      url: result.secure_url,
+      // Return timestamped URL for immediate use in frontend
+      timestampedUrl: urlWithTimestamp,
       public_id: result.public_id,
       originalSize,
       compressedSize,
-      savedPercent: parseFloat(savedPercent)
+      savedPercent: parseFloat(savedPercent),
+      uploadedAt: Date.now()
     });
   } catch (error) {
     console.error('❌ Cloudinary upload failed:', error);

@@ -18,10 +18,23 @@ export function getApiBaseUrl() {
   return API_BASE;
 }
 
+export function getCacheBustedImageUrl(url) {
+  if (!url) return '';
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}v=${Date.now()}`;
+}
+
 export function resolveImageUrl(url) {
   if (!url) return '';
   // Already absolute URL
-  if (/^https?:\/\//i.test(url)) return url;
+  if (/^https?:\/\//i.test(url)) {
+    // Add cache-busting query param for Cloudinary URLs to prevent stale image caching
+    if (url.includes('cloudinary.com') || url.includes('res.cloudinary.com')) {
+      const separator = url.includes('?') ? '&' : '?';
+      return `${url}${separator}t=${Date.now()}`;
+    }
+    return url;
+  }
   // Relative URL starting with / - prepend API base
   if (url.startsWith('/')) return `${API_BASE}${url}`;
   // Data URL or other format
@@ -49,5 +62,7 @@ export async function uploadImageFile(file, { token = '', folder = 'general', si
   if (!response.ok) {
     throw new Error(data?.error || 'Failed to upload image');
   }
-  return data.url;
+  // Return URL with cache-busting parameter to ensure fresh image on subsequent requests
+  const url = data.url || '';
+  return url;
 }

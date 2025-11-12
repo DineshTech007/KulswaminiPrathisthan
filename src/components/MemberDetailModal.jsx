@@ -233,18 +233,24 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
 
     try {
       const imageUrl = await uploadImageFile(file, { token: adminToken, folder: 'members' });
+      // Use cache-busted URL for immediate display
+      const cacheBustedUrl = `${imageUrl}?t=${Date.now()}`;
+      
       const response = await apiFetch('/api/upload-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-Admin-Token': adminToken,
         },
-        body: JSON.stringify({ memberId: member.id, imageUrl }),
+        body: JSON.stringify({ memberId: member.id, imageUrl: cacheBustedUrl }),
       });
       const result = await response.json();
       if (response.ok) {
         alert('Image uploaded successfully!');
-        window.location.reload();
+        // Reload after a brief delay to ensure server has processed the update
+        setTimeout(() => {
+          window.location.reload();
+        }, 500);
       } else {
         alert(result.error || 'Failed to upload image');
       }

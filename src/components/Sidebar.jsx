@@ -7,7 +7,7 @@ import { useTranslation, useLanguage } from '../context/LanguageContext.jsx';
 import { apiFetch, uploadImageFile } from '../utils/apiClient.js';
 import '../styles/family-tree.css';
 
-const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = '', onLoginSuccess, onLogout }) => {
+const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = '', onLoginSuccess, onLogout, siteTitle = '', siteFavicon = '', onSettingsUpdated }) => {
   const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
   const [adding, setAdding] = useState({ news: false, events: false });
@@ -175,6 +175,76 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
             onLogout={onLogout}
           />
         </div>
+
+        {isAdmin && (
+          <div className="sidebar-section admin-tools">
+            <h4 style={{ marginBottom: 12 }}>{t('family.menu')}</h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                type="button"
+                className="sidebar-link"
+                title={t('family.editTitle')}
+                onClick={() => {
+                  const newTitle = prompt(t('family.editTitle'), siteTitle) || siteTitle;
+                  apiFetch('/api/settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+                    body: JSON.stringify({ title: newTitle, faviconDataUrl: siteFavicon })
+                  }).then(async (res) => {
+                    const json = await res.json();
+                    if (res.ok) {
+                      alert('Title updated');
+                      if (typeof onSettingsUpdated === 'function') onSettingsUpdated();
+                    } else {
+                      alert(json.error || 'Failed to update title');
+                    }
+                  }).catch(() => alert('Failed to update title'));
+                }}
+                style={{ textAlign: 'left' }}
+              >
+                ✎ {t('family.editTitle')}
+              </button>
+              <label
+                className="sidebar-link"
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8, textAlign: 'left' }}
+                title={t('family.changeIcon')}
+              >
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const iconUrl = await uploadImageFile(file, { token, folder: 'site' });
+                      // Add cache-bust parameter for icon
+                      const cacheBustedIconUrl = `${iconUrl}?t=${Date.now()}`;
+                      const res = await apiFetch('/api/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
+                        body: JSON.stringify({ title: siteTitle, faviconDataUrl: cacheBustedIconUrl }),
+                      });
+                      const json = await res.json();
+                      if (res.ok) {
+                        alert('Icon updated');
+                        if (typeof onSettingsUpdated === 'function') onSettingsUpdated();
+                      } else {
+                        alert(json.error || 'Failed to update icon');
+                      }
+                    } catch (err) {
+                      console.error('Icon upload failed:', err);
+                      alert(err.message || 'Failed to upload icon');
+                    }
+                    e.target.value = '';
+                  }}}
+                />
+                🎨 {t('family.changeIcon')}
+              </label>
+            </div>
+          </div>
+        )}
+
         <nav className="sidebar-nav">
           {navItems.map(({ to, label, exact }) => (
             <NavLink
@@ -216,6 +286,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     const imageFile = e.currentTarget.elements.newsImage?.files?.[0];
                     if (imageFile) {
                       imageUrl = await uploadImageFile(imageFile, { token, folder: 'news' });
+                      // Add cache-bust parameter to prevent stale image display
+                      imageUrl = `${imageUrl}?t=${Date.now()}`;
                     }
                     const res = await apiFetch('/api/news', {
                       method: 'POST',
@@ -287,6 +359,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     const imageFile = e.currentTarget.elements.eventImage?.files?.[0];
                     if (imageFile) {
                       imageUrl = await uploadImageFile(imageFile, { token, folder: 'events' });
+                      // Add cache-bust parameter to prevent stale image display
+                      imageUrl = `${imageUrl}?t=${Date.now()}`;
                     }
                     const res = await apiFetch('/api/events', {
                       method: 'POST',

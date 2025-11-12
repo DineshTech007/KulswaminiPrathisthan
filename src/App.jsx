@@ -329,6 +329,9 @@ const App = () => {
           token={adminToken}
           onLoginSuccess={handleLoginSuccess}
           onLogout={handleLogout}
+          siteTitle={siteSettings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी '}
+          siteFavicon={siteSettings?.faviconDataUrl || ''}
+          onSettingsUpdated={fetchSettings}
         />
         <div className={`app-root ${sidebarOpen ? 'with-sidebar' : ''}`}>
           <MainNavigation />
