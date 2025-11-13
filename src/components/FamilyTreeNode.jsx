@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
@@ -93,13 +94,19 @@ const FamilyTreeNode = ({
       style={{ left, top, width: CARD_WIDTH }}
       role="presentation"
     >
-      <div
-        className={`tree-node-card${isFocused ? ' focused' : ''}`}
+      {/* Animated node card delivers a gentle pop-in when the branch is revealed. */}
+      <motion.article
+        className={`tree-node-card group relative overflow-hidden rounded-3xl border border-white/60 bg-white/80 shadow-soft backdrop-blur transition duration-200 ease-soft-spring ${
+          isFocused ? 'focused ring-2 ring-brand-400 shadow-glow-amber' : 'hover:-translate-y-1 hover:shadow-soft-xl'
+        }`}
         onClick={handleClick}
         onKeyDown={handleKeyDown}
         onDoubleClick={handleDoubleClick}
         role="button"
         tabIndex={0}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
       >
         {hasChildren ? (
           <div className="node-toggle-wrapper" onMouseEnter={() => setShowTooltip(true)} onMouseLeave={() => setShowTooltip(false)} onTouchStart={() => setShowTooltip(false)}>
@@ -132,7 +139,8 @@ const FamilyTreeNode = ({
         {hasChildren && !isExpanded && hiddenChildrenCount > 0 ? (
           <div className="node-collapsed-count" aria-hidden="true">+{hiddenChildrenCount}</div>
         ) : null}
-      </div>
+        <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-white/55 via-transparent to-primary-100/30 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
+      </motion.article>
     </div>
   );
 };
