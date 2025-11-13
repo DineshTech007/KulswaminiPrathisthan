@@ -89,12 +89,24 @@ const Home = () => {
   const hasFeed = curatedFeed.length > 0;
 
   return (
-    <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-12 px-4 pb-16 pt-8 md:px-8 lg:px-12">
-      <BrandHeader
-        title={site.title}
-        icon={site.faviconDataUrl}
-        right={<LanguageSwitcher className="bg-white/70 shadow-none ring-1 ring-white/50" />}
-      />
+    <div className="relative mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-8 px-6 pb-20 pt-12 lg:px-12">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <img 
+            src="/site-icon.png" 
+            alt="" 
+            className="h-10 w-10 rounded-notion"
+            onError={(e) => {
+              // Fallback to resolveImageUrl if local icon fails
+              if (site.faviconDataUrl && e.target.src !== site.faviconDataUrl) {
+                e.target.src = resolveImageUrl(site.faviconDataUrl);
+              }
+            }}
+          />
+          <h1 className="text-2xl font-semibold text-gray-900">{site.title}</h1>
+        </div>
+        <LanguageSwitcher />
+      </div>
 
       {/* Smooth hero reveal keeps the landing experience warm and welcoming without flash jumps. */}
       <motion.section

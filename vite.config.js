@@ -6,4 +6,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'https://kulswaminiprathisthan.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+      '/family': {
+        target: 'https://kulswaminiprathisthan.onrender.com',
+        changeOrigin: true,
+        secure: true,
+      },
+    },
+  },
 });

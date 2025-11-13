@@ -5,6 +5,9 @@ import { resolveImageUrl } from '../utils/apiClient.js';
 
 const BrandHeader = ({ title = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', icon = '', right = null }) => {
   const fallbackInitials = title?.trim()?.[0] ?? 'क';
+  
+  // Always prefer local icon first, then fallback to provided icon or initials
+  const iconSrc = '/site-icon.png';
 
   return (
     <motion.header
@@ -18,16 +21,22 @@ const BrandHeader = ({ title = 'कुलस्वामिनी प्रत�
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-notion border bg-white"
             style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
-            {icon ? (
-              <img
-                src={resolveImageUrl(icon)}
-                alt="Site icon"
-                className="h-full w-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <span className="text-xl font-semibold text-gray-900">{fallbackInitials}</span>
-            )}
+            <img
+              src={iconSrc}
+              alt="Site icon"
+              className="h-full w-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                // If local icon fails, try the provided icon URL
+                if (icon && e.target.src !== icon) {
+                  e.target.src = resolveImageUrl(icon);
+                } else {
+                  // If both fail, hide image and show initials
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = `<span class="text-xl font-semibold text-gray-900">${fallbackInitials}</span>`;
+                }
+              }}
+            />
           </div>
           <div className="flex flex-col gap-0.5">
             <h1 className="m-0 text-lg font-semibold text-gray-900 sm:text-xl">

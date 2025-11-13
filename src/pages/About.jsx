@@ -29,32 +29,94 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Check if admin token exists
+    if (!adminToken) {
+      setUploadStatus('❌ You must be logged in as admin to upload images');
+      e.target.value = '';
+      return;
+    }
+
     setUploading(true);
     setUploadStatus(`Uploading ${filename}...`);
 
     try {
+      // Create a new file with the specific filename to ensure correct naming
+      const fileWithCorrectName = new File([file], filename, { type: file.type });
+      
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('image', fileWithCorrectName);
       formData.append('folder', 'family');
 
-      console.log('Uploading image:', filename, 'with token:', adminToken);
+      console.log('=== UPLOAD DEBUG INFO ===');
+      console.log('Uploading image:', filename);
+      console.log('File size:', file.size, 'bytes');
+      console.log('File type:', file.type);
+      console.log('Admin token:', adminToken ? `${adminToken.substring(0, 10)}...` : 'MISSING');
+      console.log('FormData keys:', Array.from(formData.keys()));
+      
       const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'x-admin-token': adminToken },
+        headers: { 
+          'x-admin-token': adminToken 
+        },
         body: formData,
       });
 
-      console.log('Upload response status:', response.status);
+      console.log('=== RESPONSE INFO ===');
+      console.log('Status:', response.status, response.statusText);
+      console.log('Content-Type:', response.headers.get('content-type'));
+      console.log('Content-Length:', response.headers.get('content-length'));
+      
+      // Clone response to read it twice if needed
+      const responseClone = response.clone();
+      
+      // Try to get response text
+      let text = '';
+      try {
+        text = await response.text();
+        console.log('Response text length:', text.length);
+        if (text.length > 0) {
+          console.log('Response text (first 500 chars):', text.substring(0, 500));
+        } else {
+          console.log('Response is EMPTY');
+        }
+      } catch (readError) {
+        console.error('Failed to read response text:', readError);
+        throw new Error(`Could not read server response: ${readError.message}`);
+      }
+      
+      // Parse JSON only if we have content
+      let result;
+      if (text && text.trim()) {
+        try {
+          result = JSON.parse(text);
+          console.log('Parsed JSON successfully:', result);
+        } catch (parseError) {
+          console.error('JSON parse error:', parseError);
+          console.error('Full response text:', text);
+          throw new Error(`Server returned invalid JSON. Response: ${text.substring(0, 100)}`);
+        }
+      } else {
+        console.error('Empty response received from server');
+        console.error('This usually means:');
+        console.error('1. The server crashed or timed out');
+        console.error('2. Authentication failed silently');
+        console.error('3. The endpoint is not responding');
+        throw new Error('Server returned empty response. Check console for details.');
+      }
+
+      // Check for errors after parsing
       if (!response.ok) {
-        const err = await response.json();
-        console.error('Upload error response:', err);
-        setUploadStatus(`❌ Upload failed: ${err.error || 'Unknown error'}`);
+        console.error('Upload failed with status:', response.status);
+        console.error('Error response:', result);
+        const errorMsg = result?.error || `Server error (${response.status})`;
+        setUploadStatus(`❌ Upload failed: ${errorMsg}`);
         e.target.value = '';
         return;
       }
 
-      const result = await response.json();
-      console.log('Upload result:', result);
+      console.log('=== UPLOAD SUCCESS ===');
+      console.log('Result:', result);
       setUploadStatus(`✅ ${filename} uploaded successfully!`);
       
       // Refresh page after a short delay to show new image
@@ -62,7 +124,10 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
         window.location.reload();
       }, 1500);
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('=== UPLOAD ERROR ===');
+      console.error('Error type:', error.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       setUploadStatus(`❌ Upload error: ${error.message}`);
       e.target.value = '';
     } finally {
