@@ -63,9 +63,7 @@ export function resolveImageUrl(url) {
   }
 
   if (trimmed.startsWith('/')) {
-    if (trimmed.startsWith('/family/')) {
-      return trimmed;
-    }
+    // Serve "/family/*" and other asset paths from API_BASE (backend)
     return `${API_BASE}${trimmed}`;
   }
 

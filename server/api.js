@@ -22,10 +22,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Ensure images directory exists
+// Ensure images directories exist
 const IMAGES_DIR = path.join(__dirname, '../assets/images');
+const FAMILY_DIR = path.join(__dirname, '../assets/family');
 try {
   await fs.mkdir(IMAGES_DIR, { recursive: true });
+  await fs.mkdir(FAMILY_DIR, { recursive: true });
 } catch (err) {
   if (err?.code !== 'EEXIST') {
     console.warn('Unable to ensure images directory:', err?.message || err);
@@ -34,6 +36,7 @@ try {
 
 // Serve static images
 app.use('/assets/images', express.static(IMAGES_DIR));
+app.use('/family', express.static(FAMILY_DIR));
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -341,7 +344,7 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
     const savedPercent = ((1 - compressedSize / originalSize) * 100).toFixed(1);
     console.log(`✅ Compressed: ${(compressedSize / 1024).toFixed(2)} KB (saved ${savedPercent}%)`);
     
-    // For site/icons folder, save locally instead of Cloudinary
+  // For site/icons folder, save locally instead of Cloudinary
     if (folder === 'site' || folder === 'icons') {
       console.log(`� Saving icon locally...`);
       try {
@@ -364,6 +367,32 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
         });
       } catch (localErr) {
         console.error('❌ Local icon save failed:', localErr);
+        throw localErr;
+      }
+    }
+    
+    // Save About/Family page images locally when folder is 'family'
+    if (folder === 'family') {
+      console.log('💾 Saving family image locally...');
+      try {
+        const baseName = (req.file.originalname || `family-${Date.now()}.png`).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const fileName = baseName.toLowerCase();
+        const filePath = path.join(FAMILY_DIR, fileName);
+        await fs.writeFile(filePath, compressedBuffer);
+        const url = `/family/${fileName}`;
+        console.log(`✅ Family image saved locally: ${url}`);
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        return res.json({
+          url,
+          timestampedUrl: url,
+          originalSize,
+          compressedSize,
+          savedPercent: parseFloat(savedPercent),
+          uploadedAt: Date.now(),
+          isLocal: true
+        });
+      } catch (localErr) {
+        console.error('❌ Local family image save failed:', localErr);
         throw localErr;
       }
     }

@@ -118,7 +118,7 @@ const buildRecords = (treeData) => {
   }
 
   const mergedById = new Map();
-  [...result, ...locationSample].forEach((entry) => {
+  result.forEach((entry) => {
     if (!entry) return;
     const key = entry.id || `${entry.name}-${entry.city}`;
     if (!mergedById.has(key)) {

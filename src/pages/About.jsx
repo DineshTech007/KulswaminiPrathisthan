@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
+import { resolveImageUrl } from '../utils/apiClient.js';
 
 const About = () => {
   const { t } = useTranslation();
@@ -60,7 +61,7 @@ const About = () => {
                   className="w-full max-w-2xl overflow-hidden rounded-3xl bg-white/90 shadow-soft ring-1 ring-slate-100"
                 >
                   <img
-                    src={src}
+                    src={resolveImageUrl(src)}
                     alt={alt}
                     loading={index === 0 ? 'eager' : 'lazy'}
                     className="h-80 w-full object-cover"
