@@ -316,10 +316,6 @@ const App = () => {
   return (
     <ErrorBoundary>
       <BrowserRouter>
-  {/* Global background layers */}
-  <div className="app-background-image" aria-hidden="true" />
-  <div className="app-background-blur" aria-hidden="true" />
-  <div className="app-background-overlay" aria-hidden="true" />
         <Sidebar
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
@@ -335,11 +331,15 @@ const App = () => {
         <div className={`app-root ${sidebarOpen ? 'with-sidebar' : ''}`}>
           <MainNavigation />
           {error && (
-            <div className="px-4 pt-4">
+            <div className="px-6 pt-6">
               <div className="error-card" role="alert">
                 <h2>Could not load data</h2>
                 <p>{error}</p>
-                <button onClick={handleRetry}>Retry</button>
+                <button 
+                  onClick={handleRetry}
+                  className="mt-4 rounded-notion bg-gray-900 px-4 py-2 text-sm font-medium text-white transition-all duration-150 hover:bg-gray-800">
+                  Retry
+                </button>
               </div>
             </div>
           )}

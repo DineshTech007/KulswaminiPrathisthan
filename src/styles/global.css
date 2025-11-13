@@ -1,22 +1,23 @@
 :root {
   color-scheme: light;
-  --font-body: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Playfair Display', 'Georgia', serif;
-  --font-handwriting: 'Courgette', 'Segoe Script', cursive;
-  --brand-amber: #f97316;
-  --brand-rose: #f43f5e;
-  --brand-slate: #0f172a;
-  --surface-glass: rgba(255, 255, 255, 0.82);
-  --surface-backdrop: rgba(15, 23, 42, 0.08);
-  --border-soft: rgba(148, 163, 184, 0.28);
-  font-family: var(--font-body);
-  color: var(--brand-slate);
-  background-color: #fff7ed;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  --notion-text: #37352f;
+  --notion-text-light: #787774;
+  --notion-bg: #ffffff;
+  --notion-bg-secondary: #f7f6f3;
+  --notion-border: rgba(55, 53, 47, 0.09);
+  --notion-hover: rgba(55, 53, 47, 0.03);
+  --notion-shadow: 0 1px 1px rgba(0,0,0,0.03), 0 3px 6px rgba(0,0,0,0.02);
+  font-family: var(--font-sans);
+  color: var(--notion-text);
+  background-color: var(--notion-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html {
   scroll-behavior: smooth;
-  background: linear-gradient(180deg, rgba(255, 247, 237, 1) 0%, rgba(255, 255, 255, 0.92) 52%, rgba(255, 228, 230, 0.88) 100%);
+  background: #ffffff;
 }
 
 * {
@@ -31,10 +32,11 @@ body {
 }
 
 body {
-  background: linear-gradient(160deg, rgba(255, 228, 180, 0.35) 0%, rgba(255, 255, 255, 0.8) 35%, rgba(255, 214, 226, 0.32) 100%);
-  background-attachment: fixed;
-  background-size: cover;
-  font-family: var(--font-body);
+  background: #ffffff;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--notion-text);
 }
 
 #root {
@@ -102,15 +104,66 @@ body {
 
 button {
   font-family: inherit;
+  cursor: pointer;
+  transition: all 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Form elements - Notion style */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="date"],
+input[type="time"],
+input[type="url"],
+textarea,
+select {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--notion-text);
+  background: #ffffff;
+  border: 1px solid var(--notion-border);
+  border-radius: 3px;
+  transition: all 150ms ease;
+  outline: none;
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="tel"]:hover,
+input[type="date"]:hover,
+input[type="time"]:hover,
+input[type="url"]:hover,
+textarea:hover,
+select:hover {
+  border-color: rgba(55, 53, 47, 0.16);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #37352f;
+  box-shadow: 0 0 0 1px #37352f;
+}
+
+textarea {
+  min-height: 80px;
+  resize: vertical;
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 4px solid rgba(99, 102, 241, 0.25);
-  border-top-color: #4f46e5;
-  animation: spin 1s linear infinite;
+  border: 3px solid rgba(55, 53, 47, 0.1);
+  border-top-color: #37352f;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
@@ -120,4 +173,19 @@ button {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Utility classes */
+.line-clamp-2 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.line-clamp-3 {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
