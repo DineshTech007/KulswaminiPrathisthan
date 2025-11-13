@@ -154,12 +154,10 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
           
           <div className="space-y-4 text-base leading-relaxed text-gray-700">
             <p>
-              कुंटुंबाच्या परंपरेला जपण्यासाठी आम्ही सर्वांनी एकत्र येऊन या प्लॅटफॉर्मची निर्मिती केली आहे.
-              वंशावळ, बातम्या आणि कार्यक्रम यांद्वारे कुटुंबातील प्रत्येक सदस्य एकमेकांशी जोडलेले राहतील हीच आमची इच्छा.
+              {t('about.description.main')}
             </p>
             <p>
-              This directory gives caretakers and young members alike a simple way to explore our shared heritage.
-              Every update is curated with respect, accuracy, and love.
+              {t('about.description.purpose')}
             </p>
           </div>
           <div className="mt-10">

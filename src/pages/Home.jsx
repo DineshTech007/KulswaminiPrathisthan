@@ -245,8 +245,8 @@ const Home = () => {
                       </p>
                     ) : null}
                     <div className="mt-auto flex items-center justify-between text-xs font-semibold text-slate-500">
-                      <span>कुटुंब • Family</span>
-                      <span>Heritage • वारसा</span>
+                      <span>{language === 'mr' ? 'कुटुंब' : 'Family'}</span>
+                      <span>{language === 'mr' ? 'वारसा' : 'Heritage'}</span>
                     </div>
                   </div>
                 </motion.article>

@@ -22,27 +22,26 @@ const Contact = () => {
         >
           
           <p className="text-base leading-relaxed text-gray-700">
-            कुटुंबातील कोणत्याही सदस्याशी संपर्क साधायचा असल्यास किंवा माहिती द्यायची असल्यास,
-            कृपया खालील मार्गांचा वापर करा.
+            {t('contact.intro')}
           </p>
           
           <ul className="space-y-3">
             <li className="rounded-notion border bg-gray-50 p-4 text-sm font-medium text-gray-900"
               style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
-              📧 Email: support@Kulswamini-Prathisthan.org
+              📧 {t('contact.email')}: support@Kulswamini-Prathisthan.org
             </li>
             <li className="rounded-notion border bg-gray-50 p-4 text-sm font-medium text-gray-900"
               style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
-              📞 WhatsApp: +91 968984 4178
+              📞 {t('contact.whatsapp')}: +91 968984 4178
             </li>
             <li className="rounded-notion border bg-gray-50 p-4 text-sm font-medium text-gray-900"
               style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
-              🏠 Address: Barshi, Solapur District, Maharashtra
+              🏠 {t('contact.address')}: {t('contact.addressValue')}
             </li> 
           </ul>
           
           <p className="text-sm text-gray-600">
-            आम्ही शक्य तितक्या लवकर प्रतिसाद देण्याचा प्रयत्न करू. Thank you for staying connected! 🙏
+            {t('contact.footer')}
           </p>
         </motion.section>
       </div>
