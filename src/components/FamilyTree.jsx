@@ -1093,23 +1093,27 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                         const formData = new FormData();
                         formData.append('image', file);
                         formData.append('folder', 'site/icons');
+                        console.log('Uploading icon with token:', adminToken);
                         const response = await fetch('/api/upload', {
                           method: 'POST',
-                          headers: { 'X-Admin-Token': adminToken },
+                          headers: { 'x-admin-token': adminToken },
                           body: formData,
                         });
+                        console.log('Upload response status:', response.status);
                         if (!response.ok) {
                           const err = await response.json();
-                          alert(err.error || 'Failed to upload site icon');
+                          console.error('Upload error response:', err);
+                          alert(`❌ Failed to upload site icon: ${err.error || 'Unknown error'}`);
                           e.target.value = '';
                           return;
                         }
                         const result = await response.json();
-                        alert('Site icon uploaded successfully! Refreshing...');
+                        console.log('Upload successful:', result);
+                        alert('✅ Site icon uploaded successfully! Refreshing...');
                         window.location.reload();
                       } catch (error) {
                         console.error('Icon upload failed:', error);
-                        alert('Failed to upload site icon. See console for details.');
+                        alert(`❌ Failed to upload site icon: ${error.message}`);
                         e.target.value = '';
                       }
                     };

@@ -37,22 +37,25 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
       formData.append('image', file);
       formData.append('folder', 'family');
 
+      console.log('Uploading image:', filename, 'with token:', adminToken);
       const response = await fetch('/api/upload', {
         method: 'POST',
-        headers: { 'X-Admin-Token': adminToken },
+        headers: { 'x-admin-token': adminToken },
         body: formData,
       });
 
+      console.log('Upload response status:', response.status);
       if (!response.ok) {
         const err = await response.json();
+        console.error('Upload error response:', err);
         setUploadStatus(`❌ Upload failed: ${err.error || 'Unknown error'}`);
         e.target.value = '';
         return;
       }
 
       const result = await response.json();
-      setUploadStatus(`✅ ${filename} uploaded successfully!`);
       console.log('Upload result:', result);
+      setUploadStatus(`✅ ${filename} uploaded successfully!`);
       
       // Refresh page after a short delay to show new image
       setTimeout(() => {
