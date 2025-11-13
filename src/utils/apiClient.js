@@ -21,12 +21,20 @@ const addCloudinaryCacheParam = (url) => {
   }
 };
 
-export function apiFetch(path, options) {
+export function apiFetch(path, options = {}) {
   if (/^https?:/i.test(path)) {
-    return fetch(path, options);
+    const nextOptions = { ...options };
+    if (!nextOptions.cache) {
+      nextOptions.cache = 'no-store';
+    }
+    return fetch(path, nextOptions);
   }
   const href = `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
-  return fetch(href, options);
+  const nextOptions = { ...options };
+  if (!nextOptions.cache) {
+    nextOptions.cache = 'no-store';
+  }
+  return fetch(href, nextOptions);
 }
 
 export function getApiBaseUrl() {

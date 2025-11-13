@@ -109,7 +109,8 @@ const App = () => {
         headers['If-None-Match'] = cached.etag;
       }
 
-      const res = await apiFetch('/api/data', { headers });
+  const path = forceRefresh ? `/api/data?ts=${Date.now()}` : '/api/data';
+  const res = await apiFetch(path, { headers });
 
       if (res.status === 304 && shouldUseEtag) {
         if (cached?.data) {

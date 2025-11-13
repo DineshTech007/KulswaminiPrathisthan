@@ -34,9 +34,17 @@ try {
   }
 }
 
-// Serve static images
-app.use('/assets/images', express.static(IMAGES_DIR));
-app.use('/family', express.static(FAMILY_DIR));
+// Serve static images (always return fresh files to avoid stale caches)
+const staticNoCache = {
+  setHeaders(res) {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+  },
+};
+
+app.use('/assets/images', express.static(IMAGES_DIR, staticNoCache));
+app.use('/family', express.static(FAMILY_DIR, staticNoCache));
 
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
@@ -837,21 +845,21 @@ app.delete('/api/events/:id', requireManagerOrAdmin, async (req, res) => {
 app.post('/api/remove-child', requireAdmin, async (req, res) => {
   try {
     const { parentId, childId } = req.body;
-    
+
     if (!parentId || !childId) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const data = await readData();
-    
+
     // Find parent
-    const parent = data.find(m => m.id === parentId);
+    const parent = data.find((m) => m.id === parentId);
     if (!parent) {
       return res.status(404).json({ error: 'Parent not found' });
     }
 
     // Find child
-    const childIndex = data.findIndex(m => m.id === childId);
+    const childIndex = data.findIndex((m) => m.id === childId);
     if (childIndex === -1) {
       return res.status(404).json({ error: 'Child not found' });
     }
@@ -860,13 +868,13 @@ app.post('/api/remove-child', requireAdmin, async (req, res) => {
 
     // Check if child has children
     if (child.childrenIds && child.childrenIds.length > 0) {
-      return res.status(400).json({ 
-        error: 'Cannot remove member with children. Remove their children first.' 
+      return res.status(400).json({
+        error: 'Cannot remove member with children. Remove their children first.',
       });
     }
 
     // Remove child from parent's children list
-    parent.childrenIds = parent.childrenIds.filter(id => id !== childId);
+    parent.childrenIds = parent.childrenIds.filter((id) => id !== childId);
 
     // Remove child from data
     data.splice(childIndex, 1);
