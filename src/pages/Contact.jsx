@@ -1,26 +1,25 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
+import BrandHeader from '../components/BrandHeader.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 const Contact = () => {
   const { t } = useTranslation();
 
   return (
-    <main className="flex-1 bg-white">
-      <div className="mx-auto max-w-4xl px-6 py-12 lg:px-12">
+    <div className="page-card full-page contact-page">
+      <BrandHeader />
+      <div className="news-header">
+        <h2>{t('nav.contact')}</h2>
+        <LanguageSwitcher />
+      </div>
+      <div className="mx-auto max-w-4xl px-6 py-8 lg:px-12">
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
           className="space-y-6"
         >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              {t('nav.contact')}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-gray-900">
-              संपर्क साधा (Contact)
-            </h1>
-          </div>
           
           <p className="text-base leading-relaxed text-gray-700">
             कुटुंबातील कोणत्याही सदस्याशी संपर्क साधायचा असल्यास किंवा माहिती द्यायची असल्यास,
@@ -47,7 +46,7 @@ const Contact = () => {
           </p>
         </motion.section>
       </div>
-    </main>
+    </div>
   );
 };
 

@@ -1,5 +1,6 @@
 const translations = {
   mr: {
+    'site.title': 'कुलस्वामिनी प्रतिष्ठान,बार्शी ',
     'language.switcher.label': 'भाषा',
     'language.switcher.mr': 'मराठी',
     'language.switcher.en': 'English',
@@ -49,7 +50,7 @@ const translations = {
   'nav.contact': 'संपर्क',
   'about.gallery.heading': 'आपला कुटुंबीय फोटो अल्बम',
   'about.gallery.subheading': 'या छायाचित्रांत आपली नाती आणि एकत्रितपणा झलकतो.',
-  'about.gallery.temple': 'रात्रीच्या दर्शनानंतर मंदिर प्रांगणातील सामूहिक छायाचित्र',
+  'about.gallery.temple': 'दसऱ्याच्या शुभप्रसंगी रात्रीच्या दर्शनानंतर मंदिर प्रांगणातील सामूहिक छायाचित्र — आपल्या एकतेचं, श्रद्धेचं आणि परंपरेचं प्रतीक.',
   'about.gallery.hall': 'स्नेह मेळाव्यातील आनंदाचा क्षण',
     'family.summary': '• {{totalMembers}} सदस्य • {{totalGenerations}} पिढ्या',
     'family.searchPlaceholder': 'नावाने शोधा…',
@@ -160,6 +161,7 @@ const translations = {
     'footer.developedBy': 'Developed By: दिनेश आर. पाटील, बार्शी',
   },
   en: {
+    'site.title': 'Kulswamini Prathisthan, Barshi',
     'language.switcher.label': 'Language',
     'language.switcher.mr': 'Marathi',
     'language.switcher.en': 'English',
@@ -209,7 +211,7 @@ const translations = {
   'nav.contact': 'Contact',
   'about.gallery.heading': 'Our Family Album',
   'about.gallery.subheading': 'A glimpse into the warmth and togetherness of our extended family.',
-  'about.gallery.temple': 'Family gathering after the night darshan at the temple courtyard',
+  'about.gallery.temple': 'On the auspicious occasion of Dussehra, a group photo taken after the night’s darshan — a symbol of our unity, devotion, and tradition.',
   'about.gallery.hall': 'Joyful snapshot from the Sneh Melava celebration',
     'family.summary': '• {{totalMembers}} members • {{totalGenerations}} generations',
     'family.searchPlaceholder': 'Search by name…',

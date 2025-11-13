@@ -8,7 +8,6 @@ import { apiFetch, resolveImageUrl } from '../utils/apiClient.js';
 const Home = () => {
   const [news, setNews] = useState([]);
   const [events, setEvents] = useState([]);
-  const [site, setSite] = useState({ title: 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: '' });
   const { t } = useTranslation();
   const { language } = useLanguage();
 
@@ -28,22 +27,6 @@ const Home = () => {
         }
       } catch {
         // ignore fetch errors for the landing view
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-  const r = await apiFetch('/api/settings', { headers: { 'Cache-Control': 'no-store' } });
-        const j = await r.json();
-        if (!cancelled && r.ok) {
-          setSite({ title: j.settings?.title || 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', faviconDataUrl: j.settings?.faviconDataUrl || '' });
-        }
-      } catch {
-        // ignore
       }
     })();
     return () => { cancelled = true; };
@@ -96,14 +79,8 @@ const Home = () => {
             src="/site-icon.png" 
             alt="" 
             className="h-10 w-10 rounded-notion"
-            onError={(e) => {
-              // Fallback to resolveImageUrl if local icon fails
-              if (site.faviconDataUrl && e.target.src !== site.faviconDataUrl) {
-                e.target.src = resolveImageUrl(site.faviconDataUrl);
-              }
-            }}
           />
-          <h1 className="text-2xl font-semibold text-gray-900">{site.title}</h1>
+          <h1 className="text-2xl font-semibold text-gray-900">{t('site.title')}</h1>
         </div>
         <LanguageSwitcher />
       </div>

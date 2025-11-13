@@ -1,14 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { resolveImageUrl } from '../utils/apiClient.js';
+import { useTranslation } from '../context/LanguageContext.jsx';
 
-const BrandHeader = ({ title = 'कुलस्वामिनी प्रतिष्ठान,बार्शी ', icon = '', right = null }) => {
-  const fallbackInitials = title?.trim()?.[0] ?? 'क';
+const BrandHeader = ({ right = null }) => {
+  const { t, language } = useTranslation();
+  const title = t('site.title');
+  const subtitle = language === 'mr' ? 'कुटुंबाचा इतिहास जपूया' : 'Preserve Our Family History';
   
-  // Always prefer local icon first, then fallback to provided icon or initials
-  const iconSrc = '/site-icon.png';
-
   return (
     <motion.header
       initial={{ opacity: 0, y: -16 }}
@@ -22,20 +21,9 @@ const BrandHeader = ({ title = 'कुलस्वामिनी प्रत�
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-notion border bg-white"
             style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
             <img
-              src={iconSrc}
+              src="/site-icon.png"
               alt="Site icon"
               className="h-full w-full object-cover"
-              loading="lazy"
-              onError={(e) => {
-                // If local icon fails, try the provided icon URL
-                if (icon && e.target.src !== icon) {
-                  e.target.src = resolveImageUrl(icon);
-                } else {
-                  // If both fail, hide image and show initials
-                  e.target.style.display = 'none';
-                  e.target.parentElement.innerHTML = `<span class="text-xl font-semibold text-gray-900">${fallbackInitials}</span>`;
-                }
-              }}
             />
           </div>
           <div className="flex flex-col gap-0.5">
@@ -45,7 +33,7 @@ const BrandHeader = ({ title = 'कुलस्वामिनी प्रत�
               </Link>
             </h1>
             <p className="text-xs text-gray-600">
-              कुटुंबाचा इतिहास जपूया • Preserve Our Family
+              {subtitle}
             </p>
           </div>
         </div>

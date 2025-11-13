@@ -214,7 +214,7 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
 
   return (
     <div className="page-card full-page events-page">
-      <BrandHeader title={site.title} icon={site.faviconDataUrl} />
+      <BrandHeader />
       <div className="events-header">
         <h2>{t('events.title')}</h2>
         <LanguageSwitcher />

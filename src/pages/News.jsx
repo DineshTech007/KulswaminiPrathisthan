@@ -171,7 +171,7 @@ const News = ({ isAdmin = false, isManager = false, token = '' }) => {
 
   return (
     <div className="page-card full-page news-page">
-      <BrandHeader title={site.title} icon={site.faviconDataUrl} />
+      <BrandHeader />
       <div className="news-header">
         <h2>{t('news.title')}</h2>
         <LanguageSwitcher />

@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { translatePlaceName } from '../data/locationTranslations.js';
 import { resolveImageUrl } from '../utils/apiClient.js';
+import BrandHeader from '../components/BrandHeader.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 const KNOWN_COUNTRIES = new Set([
   'india',
@@ -461,16 +463,13 @@ const LocationDirectory = ({ data = [] }) => {
   }, [selectedMember]);
 
   return (
-    <main className="relative flex-1 bg-slate-50">
-      <div className="mx-auto w-full max-w-6xl px-4 py-10 md:px-6">
-        <header className="space-y-3 text-slate-900">
-          <p className="text-sm font-medium uppercase tracking-[0.3em] text-primary-500">
-            {t('location.title')}
-          </p>
-          <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 md:text-4xl">
-            {t('location.subtitle')}
-          </h1>
-        </header>
+    <div className="page-card full-page location-page">
+      <BrandHeader />
+      <div className="news-header">
+        <h2>{t('nav.directory')}</h2>
+        <LanguageSwitcher />
+      </div>
+      <div className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6">
 
         <form
           onSubmit={handleSearch}
@@ -741,7 +740,7 @@ const LocationDirectory = ({ data = [] }) => {
           </motion.div>
         )}
       </AnimatePresence>
-    </main>
+    </div>
   );
 };
 

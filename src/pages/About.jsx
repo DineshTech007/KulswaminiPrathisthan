@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { resolveImageUrl } from '../utils/apiClient.js';
+import BrandHeader from '../components/BrandHeader.jsx';
+import LanguageSwitcher from '../components/LanguageSwitcher.jsx';
 
 const About = ({ isAdmin = false, adminToken = '' }) => {
   const { t } = useTranslation();
@@ -136,22 +138,19 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
   };
 
   return (
-    <main className="flex-1 bg-white">
-      <div className="mx-auto max-w-4xl px-6 py-12 lg:px-12">
+    <div className="page-card full-page about-page">
+      <BrandHeader />
+      <div className="news-header">
+        <h2>{t('nav.about')}</h2>
+        <LanguageSwitcher />
+      </div>
+      <div className="mx-auto max-w-4xl px-6 py-8 lg:px-12">
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: 'easeOut' }}
           className="space-y-6"
         >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
-              {t('nav.about')}
-            </p>
-            <h1 className="mt-2 text-3xl font-semibold text-gray-900">
-              कुलस्वामिनी प्रतिष्ठान बद्दल
-            </h1>
-          </div>
           
           <div className="space-y-4 text-base leading-relaxed text-gray-700">
             <p>
@@ -225,7 +224,7 @@ const About = ({ isAdmin = false, adminToken = '' }) => {
           </div>
         </motion.section>
       </div>
-    </main>
+    </div>
   );
 };
 
