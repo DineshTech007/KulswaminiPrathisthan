@@ -4,8 +4,16 @@
   "outputDirectory": "dist",
   "routes": [
     {
+      "src": "/site-icon.png",
+      "dest": "/site-icon.png"
+    },
+    {
       "src": "/assets/(.*)",
       "dest": "/assets/$1"
+    },
+    {
+      "src": "/family/(.*)",
+      "dest": "/family/$1"
     },
     {
       "src": "/(.*)",
