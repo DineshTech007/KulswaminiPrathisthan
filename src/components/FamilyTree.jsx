@@ -1086,7 +1086,8 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                     const file = e.target.files?.[0];
                     if (!file) return;
                     try {
-                      const iconUrl = await uploadImageFile(file, { token: adminToken, folder: 'site' });
+                      const { url, timestampedUrl } = await uploadImageFile(file, { token: adminToken, folder: 'site' });
+                      const iconUrl = timestampedUrl || url;
                       const res = await apiFetch('/api/settings', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },

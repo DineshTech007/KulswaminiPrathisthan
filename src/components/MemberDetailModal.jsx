@@ -232,9 +232,8 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
     setUploadingImage(true);
 
     try {
-      const imageUrl = await uploadImageFile(file, { token: adminToken, folder: 'members' });
-      // Use cache-busted URL for immediate display
-      const cacheBustedUrl = `${imageUrl}?t=${Date.now()}`;
+      const { url, timestampedUrl } = await uploadImageFile(file, { token: adminToken, folder: 'members' });
+      const finalUrl = url || timestampedUrl;
       
       const response = await apiFetch('/api/upload-image', {
         method: 'POST',
@@ -242,7 +241,7 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
           'Content-Type': 'application/json',
           'X-Admin-Token': adminToken,
         },
-        body: JSON.stringify({ memberId: member.id, imageUrl: cacheBustedUrl }),
+        body: JSON.stringify({ memberId: member.id, imageUrl: finalUrl }),
       });
       const result = await response.json();
       if (response.ok) {

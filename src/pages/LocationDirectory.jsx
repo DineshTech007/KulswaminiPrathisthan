@@ -1,14 +1,36 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
-import locationSample from '../data/locationSample.js';
+import { translatePlaceName } from '../data/locationTranslations.js';
 import { resolveImageUrl } from '../utils/apiClient.js';
+
+const KNOWN_COUNTRIES = new Set([
+  'india',
+  'भारत',
+  'bharat',
+  'uae',
+  'united arab emirates',
+  'united states',
+  'usa',
+  'canada',
+  'australia',
+  'united kingdom',
+  'uk',
+  'qatar',
+  'oman',
+  'kuwait',
+  'japan',
+  'germany',
+  'saudi arabia',
+  'सौदी अरेबिया',
+].map((entry) => entry.toLowerCase()));
 
 const applyFilters = (records, filters) => {
   if (!Array.isArray(records)) return [];
   return records.filter((record) => {
     if (filters.country && record.country !== filters.country) return false;
     if (filters.state && record.state !== filters.state) return false;
+    if (filters.district && record.district !== filters.district) return false;
     if (filters.city && record.city !== filters.city) return false;
     return true;
   });
@@ -16,7 +38,7 @@ const applyFilters = (records, filters) => {
 
 const parseAddressParts = (address = '') => {
   if (!address) {
-    return { city: '', state: '', country: '' };
+    return { city: '', district: '', state: '', country: '' };
   }
 
   const parts = address
@@ -25,14 +47,43 @@ const parseAddressParts = (address = '') => {
     .filter(Boolean);
 
   if (parts.length === 0) {
-    return { city: '', state: '', country: '' };
+    return { city: '', district: '', state: '', country: '' };
   }
 
-  const country = parts[parts.length - 1] || '';
-  const state = parts.length > 1 ? parts[parts.length - 2] : '';
-  const city = parts.length > 2 ? parts[parts.length - 3] : parts[0];
+  const lastPart = parts[parts.length - 1];
+  const hasCountry = lastPart ? KNOWN_COUNTRIES.has(lastPart.toLowerCase()) : false;
 
-  return { city, state, country };
+  let city = '';
+  let district = '';
+  let state = '';
+  let country = '';
+
+  if (hasCountry) {
+    country = parts[parts.length - 1] || '';
+    state = parts.length > 1 ? parts[parts.length - 2] : '';
+    district = parts.length > 2 ? parts[parts.length - 3] : '';
+    if (parts.length > 3) {
+      city = parts.slice(0, parts.length - 3).join(', ');
+    } else {
+      city = parts[0] || '';
+    }
+  } else {
+    country = '';
+    state = parts[parts.length - 1] || '';
+    district = parts.length > 2 ? parts[parts.length - 2] : '';
+    if (parts.length > 2) {
+      city = parts.slice(0, parts.length - 2).join(', ');
+    } else {
+      city = parts[0] || '';
+    }
+  }
+
+  return {
+    city: city || '',
+    district: district || '',
+    state: state || '',
+    country: country || '',
+  };
 };
 
 const getPhotoFromMember = (member) => {
@@ -49,7 +100,7 @@ const buildRecords = (treeData) => {
   if (Array.isArray(treeData)) {
     treeData.forEach((member) => {
       if (!member || !member.name) return;
-      const { city, state, country } = parseAddressParts(member.address || member.city);
+      const { city, district, state, country } = parseAddressParts(member.address || member.city);
       const photoUrl = getPhotoFromMember(member);
       result.push({
         id: member.id,
@@ -57,6 +108,7 @@ const buildRecords = (treeData) => {
         address: member.address || '',
         mobile: member.mobile || '',
         city: member.city || city,
+        district: member.district || district,
         state: member.state || state,
         country: member.country || country,
         photoUrl,
@@ -73,6 +125,7 @@ const buildRecords = (treeData) => {
       mergedById.set(key, {
         ...entry,
         city: entry.city || '',
+        district: entry.district || '',
         state: entry.state || '',
         country: entry.country || '',
       });
@@ -85,15 +138,20 @@ const buildRecords = (treeData) => {
 };
 
 const LocationDirectory = ({ data = [] }) => {
-  const { t } = useTranslation();
-  const [filters, setFilters] = useState({ country: '', state: '', city: '' });
-  const [submittedFilters, setSubmittedFilters] = useState({ country: '', state: '', city: '' });
+  const { t, language } = useTranslation();
+  const [filters, setFilters] = useState({ country: '', state: '', district: '', city: '' });
+  const [submittedFilters, setSubmittedFilters] = useState({ country: '', state: '', district: '', city: '' });
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState(null);
   const [selectedMember, setSelectedMember] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
 
   const records = useMemo(() => buildRecords(data), [data]);
+
+  const formatPlaceLabel = useCallback(
+    (value) => translatePlaceName(value, language),
+    [language],
+  );
 
   const countryOptions = useMemo(() => {
     const set = new Set();
@@ -117,13 +175,30 @@ const LocationDirectory = ({ data = [] }) => {
     [records]
   );
 
-  const getCitiesForLocation = useCallback(
+  const getDistrictsForLocation = useCallback(
     (country, state) => {
-      if (!country) return [];
+      if (!country && !state) return [];
       const set = new Set();
       records.forEach((record) => {
-        if (record.country !== country) return;
+        if (country && record.country && record.country !== country) return;
         if (state && record.state && record.state !== state) return;
+        if (record.district) {
+          set.add(record.district);
+        }
+      });
+      return Array.from(set).sort((a, b) => a.localeCompare(b));
+    },
+    [records]
+  );
+
+  const getCitiesForLocation = useCallback(
+    (country, state, district) => {
+      if (!country && !state && !district) return [];
+      const set = new Set();
+      records.forEach((record) => {
+        if (country && record.country && record.country !== country) return;
+        if (state && record.state && record.state !== state) return;
+        if (district && record.district && record.district !== district) return;
         if (record.city) set.add(record.city);
       });
       return Array.from(set).sort((a, b) => a.localeCompare(b));
@@ -136,9 +211,14 @@ const LocationDirectory = ({ data = [] }) => {
     [getStatesForCountry, filters.country]
   );
 
+  const districtOptions = useMemo(
+    () => getDistrictsForLocation(filters.country, filters.state),
+    [getDistrictsForLocation, filters.country, filters.state]
+  );
+
   const cityOptions = useMemo(
-    () => getCitiesForLocation(filters.country, filters.state),
-    [getCitiesForLocation, filters.country, filters.state]
+    () => getCitiesForLocation(filters.country, filters.state, filters.district),
+    [getCitiesForLocation, filters.country, filters.state, filters.district]
   );
 
   const filteredRecords = useMemo(
@@ -156,8 +236,14 @@ const LocationDirectory = ({ data = [] }) => {
 
     const nextCountry = countryOptions[0];
     const nextState = getStatesForCountry(nextCountry)[0] || '';
-    const nextCity = getCitiesForLocation(nextCountry, nextState)[0] || '';
-    const initialFilters = { country: nextCountry, state: nextState, city: nextCity };
+    const nextDistrict = getDistrictsForLocation(nextCountry, nextState)[0] || '';
+    const nextCity = getCitiesForLocation(nextCountry, nextState, nextDistrict)[0] || '';
+    const initialFilters = {
+      country: nextCountry,
+      state: nextState,
+      district: nextDistrict,
+      city: nextCity,
+    };
 
     setFilters(initialFilters);
     setSubmittedFilters(initialFilters);
@@ -166,6 +252,7 @@ const LocationDirectory = ({ data = [] }) => {
     countryOptions,
     filters.country,
     getStatesForCountry,
+    getDistrictsForLocation,
     getCitiesForLocation,
     isInitialized,
   ]);
@@ -174,26 +261,74 @@ const LocationDirectory = ({ data = [] }) => {
     if (!filters.country) return;
 
     if (!stateOptions.length) {
-      if (!filters.state) return;
-      const nextCity = getCitiesForLocation(filters.country, '')[0] || '';
-      const nextFilters = { country: filters.country, state: '', city: nextCity };
+      if (!filters.state && !filters.district) return;
+      const nextCity = getCitiesForLocation(filters.country, '', '')[0] || '';
+      const nextFilters = {
+        country: filters.country,
+        state: '',
+        district: '',
+        city: nextCity,
+      };
       setFilters(nextFilters);
       setSubmittedFilters(nextFilters);
       return;
     }
 
-    if (!filters.state) return;
-    if (stateOptions.includes(filters.state)) return;
+    if (!filters.state || stateOptions.includes(filters.state)) return;
 
     const fallbackState = stateOptions[0];
-    const nextCity = getCitiesForLocation(filters.country, fallbackState)[0] || '';
-    const nextFilters = { country: filters.country, state: fallbackState, city: nextCity };
+    const fallbackDistrict = getDistrictsForLocation(filters.country, fallbackState)[0] || '';
+    const nextCity = getCitiesForLocation(filters.country, fallbackState, fallbackDistrict)[0] || '';
+    const nextFilters = {
+      country: filters.country,
+      state: fallbackState,
+      district: fallbackDistrict,
+      city: nextCity,
+    };
     setFilters(nextFilters);
     setSubmittedFilters(nextFilters);
   }, [
     filters.country,
     filters.state,
     stateOptions,
+    getDistrictsForLocation,
+    getCitiesForLocation,
+  ]);
+
+  useEffect(() => {
+    if (!filters.country) return;
+
+    if (!districtOptions.length) {
+      if (!filters.district) return;
+      const nextCity = getCitiesForLocation(filters.country, filters.state, '')[0] || '';
+      const nextFilters = {
+        country: filters.country,
+        state: filters.state,
+        district: '',
+        city: nextCity,
+      };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    if (!filters.district || districtOptions.includes(filters.district)) return;
+
+    const fallbackDistrict = districtOptions[0];
+    const nextCity = getCitiesForLocation(filters.country, filters.state, fallbackDistrict)[0] || '';
+    const nextFilters = {
+      country: filters.country,
+      state: filters.state,
+      district: fallbackDistrict,
+      city: nextCity,
+    };
+    setFilters(nextFilters);
+    setSubmittedFilters(nextFilters);
+  }, [
+    filters.country,
+    filters.state,
+    filters.district,
+    districtOptions,
     getCitiesForLocation,
   ]);
 
@@ -202,7 +337,12 @@ const LocationDirectory = ({ data = [] }) => {
 
     if (!cityOptions.length) {
       if (!filters.city) return;
-      const nextFilters = { country: filters.country, state: filters.state, city: '' };
+      const nextFilters = {
+        country: filters.country,
+        state: filters.state,
+        district: filters.district,
+        city: '',
+      };
       setFilters(nextFilters);
       setSubmittedFilters(nextFilters);
       return;
@@ -212,10 +352,15 @@ const LocationDirectory = ({ data = [] }) => {
     if (cityOptions.includes(filters.city)) return;
 
     const fallbackCity = cityOptions[0];
-    const nextFilters = { country: filters.country, state: filters.state, city: fallbackCity };
+    const nextFilters = {
+      country: filters.country,
+      state: filters.state,
+      district: filters.district,
+      city: fallbackCity,
+    };
     setFilters(nextFilters);
     setSubmittedFilters(nextFilters);
-  }, [filters.country, filters.state, filters.city, cityOptions]);
+  }, [filters.country, filters.state, filters.district, filters.city, cityOptions]);
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -247,8 +392,9 @@ const LocationDirectory = ({ data = [] }) => {
   };
 
   const handleReset = () => {
-    setFilters({ country: '', state: '', city: '' });
-    setSubmittedFilters({ country: '', state: '', city: '' });
+    const cleared = { country: '', state: '', district: '', city: '' };
+    setFilters(cleared);
+    setSubmittedFilters(cleared);
     setError(null);
     setIsInitialized(false);
     setIsSearching(false);
@@ -260,16 +406,36 @@ const LocationDirectory = ({ data = [] }) => {
 
     if (field === 'country') {
       const nextState = getStatesForCountry(value)[0] || '';
-      const nextCity = getCitiesForLocation(value, nextState)[0] || '';
-      const nextFilters = { country: value, state: nextState, city: nextCity };
+      const nextDistrict = getDistrictsForLocation(value, nextState)[0] || '';
+      const nextCity = getCitiesForLocation(value, nextState, nextDistrict)[0] || '';
+      const nextFilters = {
+        country: value,
+        state: nextState,
+        district: nextDistrict,
+        city: nextCity,
+      };
       setFilters(nextFilters);
       setSubmittedFilters(nextFilters);
       return;
     }
 
     if (field === 'state') {
-      const nextCity = getCitiesForLocation(filters.country, value)[0] || '';
-      const nextFilters = { ...filters, state: value, city: nextCity };
+      const nextDistrict = getDistrictsForLocation(filters.country, value)[0] || '';
+      const nextCity = getCitiesForLocation(filters.country, value, nextDistrict)[0] || '';
+      const nextFilters = {
+        ...filters,
+        state: value,
+        district: nextDistrict,
+        city: nextCity,
+      };
+      setFilters(nextFilters);
+      setSubmittedFilters(nextFilters);
+      return;
+    }
+
+    if (field === 'district') {
+      const nextCity = getCitiesForLocation(filters.country, filters.state, value)[0] || '';
+      const nextFilters = { ...filters, district: value, city: nextCity };
       setFilters(nextFilters);
       setSubmittedFilters(nextFilters);
       return;
@@ -287,8 +453,10 @@ const LocationDirectory = ({ data = [] }) => {
       address: selectedMember.address,
       mobile: selectedMember.mobile,
       city: selectedMember.city,
+      district: selectedMember.district,
       state: selectedMember.state,
       country: selectedMember.country,
+      photoUrl: selectedMember.photoUrl,
     };
   }, [selectedMember]);
 
@@ -308,7 +476,7 @@ const LocationDirectory = ({ data = [] }) => {
           onSubmit={handleSearch}
           className="mt-8 rounded-2xl bg-white/95 shadow-soft ring-1 ring-slate-100"
         >
-          <div className="grid gap-4 border-b border-slate-100 p-6 md:grid-cols-4">
+          <div className="grid gap-4 border-b border-slate-100 p-6 md:grid-cols-5">
             <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
               {t('location.labels.country')}
               <select
@@ -319,7 +487,7 @@ const LocationDirectory = ({ data = [] }) => {
                 <option value="">--</option>
                 {countryOptions.map((country) => (
                   <option key={country} value={country}>
-                    {country}
+                    {formatPlaceLabel(country)}
                   </option>
                 ))}
               </select>
@@ -335,7 +503,23 @@ const LocationDirectory = ({ data = [] }) => {
                 <option value="">--</option>
                 {stateOptions.map((state) => (
                   <option key={state} value={state}>
-                    {state}
+                    {formatPlaceLabel(state)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700">
+              {t('location.labels.district')}
+              <select
+                value={filters.district}
+                onChange={(event) => handleFilterChange('district', event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-slate-900 shadow-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-200"
+              >
+                <option value="">--</option>
+                {districtOptions.map((district) => (
+                  <option key={district} value={district}>
+                    {formatPlaceLabel(district)}
                   </option>
                 ))}
               </select>
@@ -351,13 +535,13 @@ const LocationDirectory = ({ data = [] }) => {
                 <option value="">--</option>
                 {cityOptions.map((city) => (
                   <option key={city} value={city}>
-                    {city}
+                    {formatPlaceLabel(city)}
                   </option>
                 ))}
               </select>
             </label>
 
-            <div className="flex flex-col justify-end gap-3 text-sm font-semibold text-slate-700">
+            <div className="flex flex-col justify-end gap-3 text-sm font-semibold text-slate-700 md:col-span-1">
               <button
                 type="submit"
                 className="rounded-xl bg-primary-600 px-4 py-2 text-sm font-bold text-white shadow-md shadow-primary-500/30 transition hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-500"
@@ -436,7 +620,12 @@ const LocationDirectory = ({ data = [] }) => {
                       </h3>
                       {record.address && (
                         <p className="line-clamp-2 text-sm text-slate-600">
-                          {t('location.address')}: {record.address}
+                          {t('location.address')}: {language === 'mr'
+                            ? record.address
+                                .split(',')
+                                .map((part) => formatPlaceLabel(part.trim()))
+                                .join(', ')
+                            : record.address}
                         </p>
                       )}
                       {record.mobile && (
@@ -445,8 +634,9 @@ const LocationDirectory = ({ data = [] }) => {
                         </p>
                       )}
                       <p className="text-xs uppercase tracking-widest text-slate-400">
-                        {[record.city, record.state, record.country]
+                        {[record.city, record.district, record.state, record.country]
                           .filter(Boolean)
+                          .map((part) => formatPlaceLabel(part))
                           .join(' • ')}
                       </p>
                     </div>
@@ -488,12 +678,26 @@ const LocationDirectory = ({ data = [] }) => {
                 ×
               </button>
               <div className="space-y-4 text-slate-800">
+                {selectedMeta.photoUrl && (
+                  <div className="flex justify-center">
+                    <img
+                      src={resolveImageUrl(selectedMeta.photoUrl)}
+                      alt={selectedMeta.title}
+                      className="h-32 w-32 rounded-full object-cover shadow-lg ring-4 ring-primary-100"
+                    />
+                  </div>
+                )}
                 <h2 className="text-2xl font-bold text-primary-600">
                   {selectedMeta.title}
                 </h2>
                 {selectedMeta.address && (
                   <p className="text-sm font-medium text-slate-600">
-                    {t('location.address')}: {selectedMeta.address}
+                    {t('location.address')}: {language === 'mr'
+                      ? selectedMeta.address
+                          ?.split(',')
+                          .map((part) => formatPlaceLabel(part.trim()))
+                          .join(', ')
+                      : selectedMeta.address}
                   </p>
                 )}
                 {selectedMeta.mobile && (
@@ -501,20 +705,25 @@ const LocationDirectory = ({ data = [] }) => {
                     {t('location.mobile')}: {selectedMeta.mobile}
                   </p>
                 )}
-                <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2 text-sm sm:grid-cols-2 md:grid-cols-4">
                   {selectedMeta.city && (
                     <div className="rounded-xl bg-primary-50 px-3 py-2 font-semibold text-primary-600">
-                      {t('location.labels.city')}: {selectedMeta.city}
+                      {t('location.labels.city')}: {formatPlaceLabel(selectedMeta.city)}
+                    </div>
+                  )}
+                  {selectedMeta.district && (
+                    <div className="rounded-xl bg-primary-50 px-3 py-2 font-semibold text-primary-600">
+                      {t('location.labels.district')}: {formatPlaceLabel(selectedMeta.district)}
                     </div>
                   )}
                   {selectedMeta.state && (
                     <div className="rounded-xl bg-primary-50 px-3 py-2 font-semibold text-primary-600">
-                      {t('location.labels.state')}: {selectedMeta.state}
+                      {t('location.labels.state')}: {formatPlaceLabel(selectedMeta.state)}
                     </div>
                   )}
                   {selectedMeta.country && (
                     <div className="rounded-xl bg-primary-50 px-3 py-2 font-semibold text-primary-600">
-                      {t('location.labels.country')}: {selectedMeta.country}
+                      {t('location.labels.country')}: {formatPlaceLabel(selectedMeta.country)}
                     </div>
                   )}
                 </div>

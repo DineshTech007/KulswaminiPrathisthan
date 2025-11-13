@@ -217,13 +217,12 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     const file = e.target.files?.[0];
                     if (!file) return;
                     try {
-                      const iconUrl = await uploadImageFile(file, { token, folder: 'site' });
-                      // Add cache-bust parameter for icon
-                      const cacheBustedIconUrl = `${iconUrl}?t=${Date.now()}`;
+                      const { url, timestampedUrl } = await uploadImageFile(file, { token, folder: 'site' });
+                      const iconUrl = timestampedUrl || url;
                       const res = await apiFetch('/api/settings', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token },
-                        body: JSON.stringify({ title: siteTitle, faviconDataUrl: cacheBustedIconUrl }),
+                        body: JSON.stringify({ title: siteTitle, faviconDataUrl: iconUrl }),
                       });
                       const json = await res.json();
                       if (res.ok) {
@@ -285,9 +284,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     let imageUrl = '';
                     const imageFile = e.currentTarget.elements.newsImage?.files?.[0];
                     if (imageFile) {
-                      imageUrl = await uploadImageFile(imageFile, { token, folder: 'news' });
-                      // Add cache-bust parameter to prevent stale image display
-                      imageUrl = `${imageUrl}?t=${Date.now()}`;
+                      const { url, timestampedUrl } = await uploadImageFile(imageFile, { token, folder: 'news' });
+                      imageUrl = url || timestampedUrl;
                     }
                     const res = await apiFetch('/api/news', {
                       method: 'POST',
@@ -358,9 +356,8 @@ const Sidebar = ({ open, onClose, isAdmin = false, isManager = false, token = ''
                     let imageUrl = '';
                     const imageFile = e.currentTarget.elements.eventImage?.files?.[0];
                     if (imageFile) {
-                      imageUrl = await uploadImageFile(imageFile, { token, folder: 'events' });
-                      // Add cache-bust parameter to prevent stale image display
-                      imageUrl = `${imageUrl}?t=${Date.now()}`;
+                      const { url, timestampedUrl } = await uploadImageFile(imageFile, { token, folder: 'events' });
+                      imageUrl = url || timestampedUrl;
                     }
                     const res = await apiFetch('/api/events', {
                       method: 'POST',

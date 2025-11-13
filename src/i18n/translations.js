@@ -141,9 +141,10 @@ const translations = {
     'home.feed.ctaTree': 'वंशावळ पहा',
     'home.feed.ctaNews': 'बातमी जोडा',
     'location.title': 'ठिकाणानुसार माहिती (Location Directory)',
-    'location.subtitle': 'देश, राज्य आणि शहर निवडा — आणि त्या ठिकाणातील आपल्या माणसांना शोधा',
+    'location.subtitle': 'देश, राज्य, जिल्हा आणि शहर निवडा — आणि त्या ठिकाणातील आपल्या माणसांना शोधा',
     'location.labels.country': 'देश',
     'location.labels.state': 'राज्य',
+    'location.labels.district': 'जिल्हा',
     'location.labels.city': 'शहर',
     'location.search': 'शोधा',
     'location.clear': 'रीसेट करा',
@@ -156,6 +157,7 @@ const translations = {
     'location.viewDetails': 'तपशील पहा',
     'location.modal.title': 'सदस्य माहिती',
     'location.modal.close': 'बंद करा',
+    'footer.developedBy': 'Developed By: दिनेश आर. पाटील, बार्शी',
   },
   en: {
     'language.switcher.label': 'Language',
@@ -299,9 +301,10 @@ const translations = {
     'home.feed.ctaTree': 'Go to Family Tree',
     'home.feed.ctaNews': 'Post a News Update',
     'location.title': 'ठिकाणानुसार माहिती (Location Directory)',
-    'location.subtitle': 'Filter by country, state, and city to find family members.',
+    'location.subtitle': 'Filter by country, state, district, and city to find family members.',
     'location.labels.country': 'Country',
     'location.labels.state': 'State',
+    'location.labels.district': 'District',
     'location.labels.city': 'City',
     'location.search': 'Search',
     'location.clear': 'Reset',
@@ -314,6 +317,7 @@ const translations = {
     'location.viewDetails': 'View details',
     'location.modal.title': 'Member details',
     'location.modal.close': 'Close',
+    'footer.developedBy': 'Developed by Dinesh R Patiil, Barshi',
   }
 };
 

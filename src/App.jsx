@@ -372,6 +372,9 @@ const App = () => {
               <Route path="/about" element={<About />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
+            <footer className="app-footer">
+              <p>{t('footer.developedBy')}</p>
+            </footer>
             <button
               type="button"
               className="floating-sidebar-toggle"

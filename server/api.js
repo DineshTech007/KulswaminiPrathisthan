@@ -319,8 +319,6 @@ app.post('/api/logout', (req, res) => {
 
 app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (req, res) => {
   try {
-    console.log('☁️  Cloudinary upload request received');
-    
     if (!req.file) {
       console.error('❌ No file provided');
       return res.status(400).json({ error: 'Image file is required' });
@@ -343,10 +341,36 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
     const savedPercent = ((1 - compressedSize / originalSize) * 100).toFixed(1);
     console.log(`✅ Compressed: ${(compressedSize / 1024).toFixed(2)} KB (saved ${savedPercent}%)`);
     
-    console.log(`📤 Uploading to Cloudinary folder: ${folder}`);
+    // For site/icons folder, save locally instead of Cloudinary
+    if (folder === 'site' || folder === 'icons') {
+      console.log(`� Saving icon locally...`);
+      try {
+        const iconFileName = 'site-icon.png';
+        const iconPath = path.join(IMAGES_DIR, iconFileName);
+        await fs.writeFile(iconPath, compressedBuffer);
+        const iconUrl = `/assets/images/${iconFileName}`;
+        console.log(`✅ Icon saved locally: ${iconUrl}`);
+        
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        return res.json({
+          url: iconUrl,
+          timestampedUrl: iconUrl,
+          public_id: 'site-icon',
+          originalSize,
+          compressedSize,
+          savedPercent: parseFloat(savedPercent),
+          uploadedAt: Date.now(),
+          isLocal: true
+        });
+      } catch (localErr) {
+        console.error('❌ Local icon save failed:', localErr);
+        throw localErr;
+      }
+    }
     
+    // For other folders, upload to Cloudinary
+    console.log(`☁️  Uploading to Cloudinary folder: ${folder}`);
     const result = await uploadBufferToCloudinary(compressedBuffer, { folder });
-    
     console.log(`✅ Cloudinary upload success: ${result.secure_url}`);
     
     // Add timestamp to URL to prevent caching issues
@@ -366,7 +390,7 @@ app.post('/api/upload', requireManagerOrAdmin, upload.single('image'), async (re
       uploadedAt: Date.now()
     });
   } catch (error) {
-    console.error('❌ Cloudinary upload failed:', error);
+    console.error('❌ Upload failed:', error);
     return res.status(500).json({ error: 'Image upload failed' });
   }
 });

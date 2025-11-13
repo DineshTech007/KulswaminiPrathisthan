@@ -5,6 +5,21 @@ const normalizeBase = (value) => {
 
 const DEFAULT_API_BASE = 'https://kulswaminiprathisthan.onrender.com';
 const API_BASE = normalizeBase(import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE);
+const CACHE_BUSTER_INTERVAL_MS = 1000 * 60 * 5; // refresh every 5 minutes
+
+const computeCacheBuster = () => Math.floor(Date.now() / CACHE_BUSTER_INTERVAL_MS);
+
+const addCloudinaryCacheParam = (url) => {
+  const cacheValue = String(computeCacheBuster());
+  try {
+    const urlObj = new URL(url);
+    urlObj.searchParams.set('t', cacheValue);
+    return urlObj.toString();
+  } catch {
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}t=${cacheValue}`;
+  }
+};
 
 export function apiFetch(path, options) {
   if (/^https?:/i.test(path)) {
@@ -20,25 +35,41 @@ export function getApiBaseUrl() {
 
 export function getCacheBustedImageUrl(url) {
   if (!url) return '';
+  if (/^https?:\/\//i.test(url) && (url.includes('cloudinary.com') || url.includes('res.cloudinary.com'))) {
+    return addCloudinaryCacheParam(url);
+  }
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}v=${Date.now()}`;
+  return `${url}${separator}v=${computeCacheBuster()}`;
 }
 
 export function resolveImageUrl(url) {
   if (!url) return '';
-  // Already absolute URL
-  if (/^https?:\/\//i.test(url)) {
-    // Add cache-busting query param for Cloudinary URLs to prevent stale image caching
-    if (url.includes('cloudinary.com') || url.includes('res.cloudinary.com')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return `${url}${separator}t=${Date.now()}`;
-    }
-    return url;
+  const trimmed = String(url).trim();
+  if (!trimmed) return '';
+
+  if (/^data:/i.test(trimmed)) {
+    return trimmed;
   }
-  // Relative URL starting with / - prepend API base
-  if (url.startsWith('/')) return `${API_BASE}${url}`;
-  // Data URL or other format
-  return url;
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    if (trimmed.includes('cloudinary.com') || trimmed.includes('res.cloudinary.com')) {
+      return addCloudinaryCacheParam(trimmed);
+    }
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('//')) {
+    return `https:${trimmed}`;
+  }
+
+  if (trimmed.startsWith('/')) {
+    if (trimmed.startsWith('/family/')) {
+      return trimmed;
+    }
+    return `${API_BASE}${trimmed}`;
+  }
+
+  return trimmed;
 }
 
 export async function uploadImageFile(file, { token = '', folder = 'general', signal } = {}) {
@@ -62,7 +93,12 @@ export async function uploadImageFile(file, { token = '', folder = 'general', si
   if (!response.ok) {
     throw new Error(data?.error || 'Failed to upload image');
   }
-  // Return URL with cache-busting parameter to ensure fresh image on subsequent requests
   const url = data.url || '';
-  return url;
+  const timestampedUrl = data.timestampedUrl || (url ? getCacheBustedImageUrl(url) : '');
+  return {
+    url,
+    timestampedUrl,
+    uploadedAt: data.uploadedAt || Date.now(),
+    publicId: data.public_id || '',
+  };
 }

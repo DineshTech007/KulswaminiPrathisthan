@@ -327,7 +327,8 @@ const Events = ({ isAdmin = false, isManager = false, token = '' }) => {
                         let imageUrl = item.imageUrl || '';
                         const imageFile = e.currentTarget.elements.image?.files?.[0];
                         if (imageFile) {
-                          imageUrl = await uploadImageFile(imageFile, { token, folder: 'events' });
+                          const { url, timestampedUrl } = await uploadImageFile(imageFile, { token, folder: 'events' });
+                          imageUrl = url || timestampedUrl;
                         }
                         
                         const res = await apiFetch(`/api/events/${item.id}`, {
