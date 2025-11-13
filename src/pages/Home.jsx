@@ -76,7 +76,7 @@ const Home = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <img 
-            src="/site-icon.png" 
+            src="/site-icon.png?v=2" 
             alt="" 
             className="h-10 w-10 rounded-notion"
           />
@@ -107,10 +107,7 @@ const Home = () => {
             >
               {t('home.hero.heading')}
               <span className="mt-2 block text-[clamp(1.65rem,3.1vw,2.45rem)] font-bold text-brand-600">
-                कुटुंबाचा इतिहास जपूया
-              </span>
-              <span className="block text-[clamp(1.45rem,2.6vw,2.1rem)] font-semibold text-slate-700">
-                Preserve Our Family — Together
+                {t('site.subheading')}
               </span>
             </motion.h2>
             <p className="text-base text-slate-600 md:text-lg">{t('home.hero.sub')}</p>
@@ -139,7 +136,7 @@ const Home = () => {
             </div>
             <div className="mt-6 grid gap-3 text-sm text-slate-500 sm:grid-cols-2">
               <div className="rounded-3xl border border-white/60 bg-white/80 p-5 shadow-soft backdrop-blur">
-                <p className="text-sm font-semibold text-brand-600">"कुटुंब प्रेमाने जोडलेले"</p>
+                <p className="text-sm font-semibold text-brand-600">{t('site.desc')}</p>
                 <p className="mt-2 text-sm text-slate-600">Let every branch flourish with memories, blessings, and shared celebrations.</p>
               </div>
               <div className="rounded-3xl border border-white/60 bg-white/80 p-5 shadow-soft backdrop-blur">

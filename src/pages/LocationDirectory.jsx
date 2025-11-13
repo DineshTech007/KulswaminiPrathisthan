@@ -102,18 +102,27 @@ const buildRecords = (treeData) => {
   if (Array.isArray(treeData)) {
     treeData.forEach((member) => {
       if (!member || !member.name) return;
-      const { city, district, state, country } = parseAddressParts(member.address || member.city);
+      
+      // Skip if member has no address at all
+      if (!member.address || member.address.trim() === '') return;
+      
+      const { city, district, state, country } = parseAddressParts(member.address);
       const photoUrl = getPhotoFromMember(member);
+      
       result.push({
         id: member.id,
         name: member.name,
+        englishName: member.englishName || '',
         address: member.address || '',
         mobile: member.mobile || '',
-        city: member.city || city,
-        district: member.district || district,
-        state: member.state || state,
-        country: member.country || country,
+        city: city || '',
+        district: district || '',
+        state: state || '',
+        country: country || '',
         photoUrl,
+        birthDate: member.birthDate || '',
+        gender: member.gender || '',
+        notes: member.notes || '',
         member,
       });
     });
@@ -134,6 +143,7 @@ const buildRecords = (treeData) => {
     }
   });
 
+  // Filter to only include records with at least city, state OR country
   return Array.from(mergedById.values()).filter(
     (record) => record.city || record.state || record.country
   );
@@ -450,8 +460,16 @@ const LocationDirectory = ({ data = [] }) => {
 
   const selectedMeta = useMemo(() => {
     if (!selectedMember) return null;
+    const displayName = language === 'en' && selectedMember.englishName 
+      ? selectedMember.englishName 
+      : selectedMember.name;
+    const alternateName = language === 'en' && selectedMember.englishName && selectedMember.name !== selectedMember.englishName
+      ? selectedMember.name
+      : (language === 'mr' && selectedMember.englishName ? selectedMember.englishName : '');
+    
     return {
-      title: selectedMember.name,
+      title: displayName,
+      alternateName: alternateName,
       address: selectedMember.address,
       mobile: selectedMember.mobile,
       city: selectedMember.city,
@@ -459,8 +477,11 @@ const LocationDirectory = ({ data = [] }) => {
       state: selectedMember.state,
       country: selectedMember.country,
       photoUrl: selectedMember.photoUrl,
+      birthDate: selectedMember.birthDate,
+      gender: selectedMember.gender,
+      notes: selectedMember.notes,
     };
-  }, [selectedMember]);
+  }, [selectedMember, language]);
 
   return (
     <div className="page-card full-page location-page">
@@ -615,8 +636,13 @@ const LocationDirectory = ({ data = [] }) => {
                     )}
                     <div className="min-w-0 flex-1 space-y-1">
                       <h3 className="truncate text-lg font-semibold text-slate-900">
-                        {record.name}
+                        {language === 'en' && record.englishName ? record.englishName : record.name}
                       </h3>
+                      {language === 'en' && record.englishName && record.name !== record.englishName && (
+                        <p className="text-xs text-slate-500">
+                          {record.name}
+                        </p>
+                      )}
                       {record.address && (
                         <p className="line-clamp-2 text-sm text-slate-600">
                           {t('location.address')}: {language === 'mr'
@@ -686,9 +712,21 @@ const LocationDirectory = ({ data = [] }) => {
                     />
                   </div>
                 )}
-                <h2 className="text-2xl font-bold text-primary-600">
-                  {selectedMeta.title}
-                </h2>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-primary-600">
+                    {selectedMeta.title}
+                  </h2>
+                  {selectedMeta.alternateName && (
+                    <p className="mt-1 text-sm text-slate-500">
+                      {selectedMeta.alternateName}
+                    </p>
+                  )}
+                  {selectedMeta.birthDate && (
+                    <p className="mt-1 text-xs text-slate-400">
+                      Born: {selectedMeta.birthDate}
+                    </p>
+                  )}
+                </div>
                 {selectedMeta.address && (
                   <p className="text-sm font-medium text-slate-600">
                     {t('location.address')}: {language === 'mr'

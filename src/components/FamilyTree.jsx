@@ -1035,7 +1035,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
           <h1>
             {
               <img
-                src={'/site-icon.png'}
+                src={'/site-icon.png?v=2'}
                 alt="icon"
                 style={{
                   width: 48,

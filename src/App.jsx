@@ -100,13 +100,18 @@ const App = () => {
     try {
       setError(null);
       const headers = { Accept: 'application/json' };
-      if (!forceRefresh && cached?.etag) {
+      
+      // ALWAYS force refresh on page load to ensure fresh data after updates
+      // Only use cache for subsequent navigations within the session
+      const shouldUseEtag = !forceRefresh && cached?.etag && cached?.fetchedAt && (Date.now() - cached.fetchedAt < 30000);
+      
+      if (shouldUseEtag) {
         headers['If-None-Match'] = cached.etag;
       }
 
       const res = await apiFetch('/api/data', { headers });
 
-      if (res.status === 304) {
+      if (res.status === 304 && shouldUseEtag) {
         if (cached?.data) {
           const refreshedCache = { ...cached, fetchedAt: Date.now() };
           treeCacheMetaRef.current = refreshedCache;
@@ -241,7 +246,7 @@ const App = () => {
     }
     const setFavicon = (_href) => {
       // Always use static frontend asset. Place your icon at public/site-icon.png
-      const resolvedHref = '/site-icon.png';
+      const resolvedHref = '/site-icon.png?v=2';
       // Remove existing icons to avoid conflicts
       const existing = Array.from(document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'));
       existing.forEach((el) => el.parentNode?.removeChild(el));

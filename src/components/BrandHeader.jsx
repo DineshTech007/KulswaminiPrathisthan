@@ -21,7 +21,7 @@ const BrandHeader = ({ right = null }) => {
           <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-notion border bg-white"
             style={{ borderColor: 'rgba(55, 53, 47, 0.09)' }}>
             <img
-              src="/site-icon.png"
+              src="/site-icon.png?v=2"
               alt="Site icon"
               className="h-full w-full object-cover"
             />

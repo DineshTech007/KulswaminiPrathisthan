@@ -1,6 +1,8 @@
 const translations = {
   mr: {
     'site.title': 'कुलस्वामिनी प्रतिष्ठान,बार्शी ',
+    'site.subheading': 'कुटुंबाचा इतिहास जपूया',
+    'site.desc': 'कुटुंब प्रेमाने जोडलेले',
     'language.switcher.label': 'भाषा',
     'language.switcher.mr': 'मराठी',
     'language.switcher.en': 'English',
@@ -162,6 +164,8 @@ const translations = {
   },
   en: {
     'site.title': 'Kulswamini Prathisthan, Barshi',
+    'site.subheading': 'Preserve Our Family History',
+    'site.desc': 'Family connected by love',
     'language.switcher.label': 'Language',
     'language.switcher.mr': 'Marathi',
     'language.switcher.en': 'English',
