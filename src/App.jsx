@@ -368,7 +368,7 @@ const App = () => {
               <Route path="/events" element={<Events isAdmin={isAdmin} isManager={isManager} token={adminToken} />} />
               <Route path="/directory" element={<LocationDirectory data={treeData} />} />
               <Route path="/locations" element={<LocationDirectory data={treeData} />} />
-              <Route path="/about" element={<About />} />
+              <Route path="/about" element={<About isAdmin={isAdmin} adminToken={adminToken} />} />
               <Route path="/contact" element={<Contact />} />
             </Routes>
             <footer className="app-footer">

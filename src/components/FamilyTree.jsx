@@ -1083,10 +1083,39 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                 >{t('family.editTitle')}</button>
                 <label className="reset-button" title={t('family.changeIcon')} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
                   <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
-                    e.target.value = '';
-                    alert('Site icon is now a static file. Please replace public/site-icon.png in the source code repository and redeploy.');
+                    const file = e.target.files?.[0];
+                    if (!file) {
+                      e.target.value = '';
+                      return;
+                    }
+                    const uploadIcon = async () => {
+                      try {
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        formData.append('folder', 'site/icons');
+                        const response = await fetch('/api/upload', {
+                          method: 'POST',
+                          headers: { 'X-Admin-Token': adminToken },
+                          body: formData,
+                        });
+                        if (!response.ok) {
+                          const err = await response.json();
+                          alert(err.error || 'Failed to upload site icon');
+                          e.target.value = '';
+                          return;
+                        }
+                        const result = await response.json();
+                        alert('Site icon uploaded successfully! Refreshing...');
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Icon upload failed:', error);
+                        alert('Failed to upload site icon. See console for details.');
+                        e.target.value = '';
+                      }
+                    };
+                    uploadIcon();
                   }} />
-                  {t('family.changeIcon')} (static)
+                  {t('family.changeIcon')}
                 </label>
               </>
             )}

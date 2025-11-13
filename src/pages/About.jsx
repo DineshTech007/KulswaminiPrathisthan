@@ -1,25 +1,71 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { resolveImageUrl } from '../utils/apiClient.js';
 
-const About = () => {
+const About = ({ isAdmin = false, adminToken = '' }) => {
   const { t } = useTranslation();
+  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState('');
   const familyPhotos = useMemo(
     () => [
       {
         src: '/family/family-gathering-night.jpg',
         caption: t('about.gallery.temple'),
         alt: 'Family gathering at temple courtyard during night celebration',
+        filename: 'family-gathering-night.jpg',
       },
       {
         src: '/family/sneh-melava-gathering.jpg',
         caption: t('about.gallery.hall'),
         alt: 'Family gathering during Sneh Melava celebration in hall',
+        filename: 'sneh-melava-gathering.jpg',
       },
     ],
     [t]
   );
+
+  const handleImageUpload = async (e, filename) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    setUploadStatus(`Uploading ${filename}...`);
+
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('folder', 'family');
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'X-Admin-Token': adminToken },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        setUploadStatus(`❌ Upload failed: ${err.error || 'Unknown error'}`);
+        e.target.value = '';
+        return;
+      }
+
+      const result = await response.json();
+      setUploadStatus(`✅ ${filename} uploaded successfully!`);
+      console.log('Upload result:', result);
+      
+      // Refresh page after a short delay to show new image
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
+    } catch (error) {
+      console.error('Upload error:', error);
+      setUploadStatus(`❌ Upload error: ${error.message}`);
+      e.target.value = '';
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <main className="flex-1 bg-slate-50">
@@ -52,7 +98,7 @@ const About = () => {
               {t('about.gallery.subheading')}
             </p>
             <div className="mt-6 flex flex-col items-center gap-8">
-              {familyPhotos.map(({ src, caption, alt }, index) => (
+              {familyPhotos.map(({ src, caption, alt, filename }, index) => (
                 <motion.figure
                   key={src}
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -77,9 +123,30 @@ const About = () => {
                   <figcaption className="px-6 py-4 text-center text-sm font-semibold text-slate-600">
                     {caption}
                   </figcaption>
+                  {isAdmin && (
+                    <div className="border-t border-slate-200 bg-slate-50 px-6 py-3">
+                      <label className="block text-center">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, filename)}
+                          disabled={uploading}
+                          style={{ display: 'none' }}
+                        />
+                        <span className="inline-block rounded-lg bg-primary-600 px-3 py-2 text-sm font-medium text-white cursor-pointer hover:bg-primary-700 disabled:bg-slate-400">
+                          {uploading ? 'Uploading...' : `Update ${filename.split('.')[0]}`}
+                        </span>
+                      </label>
+                    </div>
+                  )}
                 </motion.figure>
               ))}
             </div>
+            {uploadStatus && (
+              <div className="mt-6 text-center text-sm font-medium text-slate-700">
+                {uploadStatus}
+              </div>
+            )}
           </div>
         </motion.section>
       </div>
