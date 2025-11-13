@@ -488,6 +488,39 @@ function generateId(existingData) {
   return String(maxId + 1);
 }
 
+const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key);
+
+const validationError = (message) => {
+  const error = new Error(message);
+  error.statusCode = 400;
+  return error;
+};
+
+const parseOptionalInt = (value, { field = 'value', min, max } = {}) => {
+  if (value === undefined) {
+    return { apply: false, value: undefined };
+  }
+
+  if (value === null || value === '') {
+    return { apply: true, value: undefined };
+  }
+
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric) || Math.floor(numeric) !== numeric) {
+    throw validationError(`${field} must be a whole number.`);
+  }
+
+  if (min !== undefined && numeric < min) {
+    throw validationError(`${field} cannot be less than ${min}.`);
+  }
+
+  if (max !== undefined && numeric > max) {
+    throw validationError(`${field} cannot be greater than ${max}.`);
+  }
+
+  return { apply: true, value: numeric };
+};
+
 // Add child endpoint (admin only)
 app.post('/api/add-child', requireAdmin, async (req, res) => {
   try {
@@ -912,18 +945,34 @@ app.post('/api/update-member', requireAdmin, async (req, res) => {
     console.log('Member before update:', member);
 
     // Update member fields
-    if (updatedData.name !== undefined) member.name = updatedData.name;
-    if (updatedData.englishName !== undefined) member.englishName = updatedData.englishName;
-    if (updatedData.birthDate !== undefined) member.birthDate = updatedData.birthDate;
-  if (updatedData.birthMonth !== undefined) member.birthMonth = Number(updatedData.birthMonth);
-  if (updatedData.birthDay !== undefined) member.birthDay = Number(updatedData.birthDay);
-    if (updatedData.deathDate !== undefined) member.deathDate = updatedData.deathDate;
-  if (updatedData.isDeceased !== undefined) member.isDeceased = Boolean(updatedData.isDeceased);
-  if (updatedData.gender !== undefined) member.gender = updatedData.gender;
-  if (updatedData.isDeceased !== undefined) member.isDeceased = Boolean(updatedData.isDeceased);
-    if (updatedData.address !== undefined) member.address = updatedData.address;
-    if (updatedData.mobile !== undefined) member.mobile = updatedData.mobile;
-    if (updatedData.notes !== undefined) member.notes = updatedData.notes;
+    if (hasOwn(updatedData, 'name')) member.name = updatedData.name;
+    if (hasOwn(updatedData, 'englishName')) member.englishName = updatedData.englishName;
+    if (hasOwn(updatedData, 'birthDate')) member.birthDate = updatedData.birthDate;
+
+    const birthMonthResult = parseOptionalInt(updatedData.birthMonth, { field: 'birthMonth', min: 1, max: 12 });
+    if (birthMonthResult.apply) {
+      if (birthMonthResult.value === undefined) {
+        delete member.birthMonth;
+      } else {
+        member.birthMonth = birthMonthResult.value;
+      }
+    }
+
+    const birthDayResult = parseOptionalInt(updatedData.birthDay, { field: 'birthDay', min: 1, max: 31 });
+    if (birthDayResult.apply) {
+      if (birthDayResult.value === undefined) {
+        delete member.birthDay;
+      } else {
+        member.birthDay = birthDayResult.value;
+      }
+    }
+
+    if (hasOwn(updatedData, 'deathDate')) member.deathDate = updatedData.deathDate;
+    if (hasOwn(updatedData, 'isDeceased')) member.isDeceased = Boolean(updatedData.isDeceased);
+    if (hasOwn(updatedData, 'gender')) member.gender = updatedData.gender;
+    if (hasOwn(updatedData, 'address')) member.address = updatedData.address;
+    if (hasOwn(updatedData, 'mobile')) member.mobile = updatedData.mobile;
+    if (hasOwn(updatedData, 'notes')) member.notes = updatedData.notes;
 
     console.log('Member after update:', member);
 
@@ -935,7 +984,9 @@ app.post('/api/update-member', requireAdmin, async (req, res) => {
     res.json({ success: true, member });
   } catch (error) {
     console.error('Error updating member:', error);
-    res.status(500).json({ error: 'Failed to update member' });
+    const status = error?.statusCode || 500;
+    const message = status === 400 ? error.message : 'Failed to update member';
+    res.status(status).json({ error: message });
   }
 });
 
