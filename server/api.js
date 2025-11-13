@@ -560,16 +560,17 @@ app.get('/api/data', async (req, res) => {
       res.set('X-Data-Refreshed-At', new Date(meta.refreshedAt).toISOString());
     }
 
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+
     if (etag) {
       const ifNoneMatch = req.headers['if-none-match'];
       res.set('ETag', quotedEtag || etag);
       if (ifNoneMatch && (ifNoneMatch === etag || ifNoneMatch === quotedEtag)) {
-        res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
         return res.status(304).end();
       }
     }
-
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=60');
     res.json({
       success: true,
       data,
