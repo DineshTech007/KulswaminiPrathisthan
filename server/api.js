@@ -550,6 +550,10 @@ app.post('/api/add-child', requireAdmin, async (req, res) => {
       deathDate: childData.deathDate || '',
       isDeceased: Boolean(childData.isDeceased),
       gender: childData.gender || '',
+      city: childData.city || '',
+      district: childData.district || '',
+      state: childData.state || '',
+      country: childData.country || '',
       address: childData.address || '',
       mobile: childData.mobile || '',
       parentIds: [parentId],
@@ -970,6 +974,10 @@ app.post('/api/update-member', requireAdmin, async (req, res) => {
     if (hasOwn(updatedData, 'deathDate')) member.deathDate = updatedData.deathDate;
     if (hasOwn(updatedData, 'isDeceased')) member.isDeceased = Boolean(updatedData.isDeceased);
     if (hasOwn(updatedData, 'gender')) member.gender = updatedData.gender;
+    if (hasOwn(updatedData, 'city')) member.city = updatedData.city;
+    if (hasOwn(updatedData, 'district')) member.district = updatedData.district;
+    if (hasOwn(updatedData, 'state')) member.state = updatedData.state;
+    if (hasOwn(updatedData, 'country')) member.country = updatedData.country;
     if (hasOwn(updatedData, 'address')) member.address = updatedData.address;
     if (hasOwn(updatedData, 'mobile')) member.mobile = updatedData.mobile;
     if (hasOwn(updatedData, 'notes')) member.notes = updatedData.notes;

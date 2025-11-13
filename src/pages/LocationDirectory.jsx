@@ -103,10 +103,28 @@ const buildRecords = (treeData) => {
     treeData.forEach((member) => {
       if (!member || !member.name) return;
       
-      // Skip if member has no address at all
-      if (!member.address || member.address.trim() === '') return;
+      // Skip deceased members
+      if (member.isDeceased) return;
       
-      const { city, district, state, country } = parseAddressParts(member.address);
+      // Use structured address fields if available, otherwise parse address string
+      let city, district, state, country;
+      
+      if (member.city || member.district || member.state || member.country) {
+        city = member.city || '';
+        district = member.district || '';
+        state = member.state || '';
+        country = member.country || '';
+      } else if (member.address && member.address.trim() !== '') {
+        const parsed = parseAddressParts(member.address);
+        city = parsed.city;
+        district = parsed.district;
+        state = parsed.state;
+        country = parsed.country;
+      } else {
+        // Skip if no address data at all
+        return;
+      }
+      
       const photoUrl = getPhotoFromMember(member);
       
       result.push({

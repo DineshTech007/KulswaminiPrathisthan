@@ -421,12 +421,52 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
                 />
               </div>
               <div className="form-group">
+                <label htmlFor="editCity">{t('member.modal.cityLabel')}</label>
+                <input
+                  id="editCity"
+                  type="text"
+                  value={editedMember?.city || ''}
+                  onChange={(e) => setEditedMember({ ...editedMember, city: e.target.value })}
+                  placeholder="City"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="editDistrict">{t('member.modal.districtLabel')}</label>
+                <input
+                  id="editDistrict"
+                  type="text"
+                  value={editedMember?.district || ''}
+                  onChange={(e) => setEditedMember({ ...editedMember, district: e.target.value })}
+                  placeholder="District"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="editState">{t('member.modal.stateLabel')}</label>
+                <input
+                  id="editState"
+                  type="text"
+                  value={editedMember?.state || ''}
+                  onChange={(e) => setEditedMember({ ...editedMember, state: e.target.value })}
+                  placeholder="State"
+                />
+              </div>
+              <div className="form-group">
+                <label htmlFor="editCountry">{t('member.modal.countryLabel')}</label>
+                <input
+                  id="editCountry"
+                  type="text"
+                  value={editedMember?.country || ''}
+                  onChange={(e) => setEditedMember({ ...editedMember, country: e.target.value })}
+                  placeholder="Country"
+                />
+              </div>
+              <div className="form-group">
                 <label htmlFor="editAddress">{t('member.modal.addressLabel')}</label>
                 <textarea
                   id="editAddress"
                   value={editedMember?.address || ''}
                   onChange={(e) => setEditedMember({ ...editedMember, address: e.target.value })}
-                  placeholder="Full address"
+                  placeholder="Full address (optional)"
                   rows="2"
                 />
               </div>
