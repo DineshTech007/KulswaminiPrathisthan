@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
 import FamilyTreeNode from './FamilyTreeNode.jsx';
 import MemberDetailModal from './MemberDetailModal.jsx';
 import LanguageSwitcher from './LanguageSwitcher.jsx';
@@ -1028,71 +1027,43 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   };
 
   const readyToRender = layoutReady && minWaitElapsed && mountDone;
-  const siteIconSrc = siteFavicon ? resolveImageUrl(siteFavicon) : '/site-icon.png';
 
   return (  
-    <div className="tree-container relative" ref={containerRef}>
-      <motion.header
-        initial={{ opacity: 0, y: -24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: 'easeOut' }}
-        className="tree-header relative flex w-full flex-wrap items-center justify-between gap-6 rounded-b-4xl border-b border-white/60 bg-white/80 px-6 py-6 shadow-soft-xl backdrop-blur-xl lg:px-10"
-        style={{
-          backgroundImage:
-            'radial-gradient(circle at -5% -20%, rgba(251, 191, 36, 0.28), transparent 45%), radial-gradient(circle at 110% 0%, rgba(244, 114, 182, 0.22), transparent 48%), linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.74) 100%)',
-        }}
-      >
-        <div className="flex flex-wrap items-center gap-5">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: 'easeOut', delay: 0.05 }}
-            className="relative flex h-16 w-16 items-center justify-center rounded-3xl border border-white/70 bg-white/85 shadow-glow-amber ring-4 ring-white/45"
-          >
-            <img
-              src={siteIconSrc}
-              alt={siteTitle}
-              className="h-full w-full rounded-2xl object-cover"
-              loading="lazy"
-            />
-            <span className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-white/65 via-transparent to-primary-100/35" aria-hidden="true" />
-          </motion.div>
-          <div className="flex flex-col gap-2">
-            <h1 className="text-[clamp(1.75rem,3.5vw,2.45rem)] font-display font-semibold leading-snug text-slate-900">
-              {siteTitle}
-            </h1>
-            <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-brand-600">
-              <span>कुटुंबाचा इतिहास जपूया</span>
-              <span className="text-slate-400">•</span>
-              <span className="text-slate-600">Preserve Our Family — Together</span>
-            </p>
-            <p className="text-sm font-medium text-slate-600">
-              {t('family.summary', { totalMembers: summary.totalMembers, totalGenerations: summary.totalGenerations })}
-            </p>
-            <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-500">
-              <span className="rounded-full bg-brand-50 px-3 py-1 text-brand-600">सदस्य • Members: {summary.totalMembers}</span>
-              <span className="rounded-full bg-primary-50 px-3 py-1 text-primary-700">पिढ्या • Generations: {summary.totalGenerations}</span>
-            </div>
-          </div>
+    <div className="tree-container" ref={containerRef}>
+  <header className="tree-header">
+        <div>
+          <h1>
+            {
+              <img
+                src={'/site-icon.png'}
+                alt="icon"
+                style={{
+                  width: 48,
+                  height: 48,
+                  verticalAlign: 'middle',
+                  marginRight: 10,
+                  borderRadius: 10,
+                  objectFit: 'cover',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+                }}
+              />
+            }
+            {siteTitle}
+          </h1>
+          <p>
+            {t('family.summary', { totalMembers: summary.totalMembers, totalGenerations: summary.totalGenerations })}
+          </p>
         </div>
-        <div className="flex flex-1 flex-col gap-4 md:flex-row md:items-center md:justify-end">
-          <LanguageSwitcher className="bg-white/75 shadow-none ring-1 ring-white/60" />
-          <div className="flex flex-wrap items-center justify-end gap-3">
-            <button
-              type="button"
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-primary-200 bg-primary-500 text-lg font-semibold text-white shadow-soft transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-              onClick={onToggleSidebar}
-              title={t('family.menu')}
-              aria-label={t('family.menu')}
-            >
-              ☰
-            </button>
-            {isAdmin ? (
-              <div className="flex flex-wrap items-center gap-2">
+        <div className="header-search-actions">
+          <div className="header-actions top-right-actions">
+              <LanguageSwitcher />
+              <button type="button" className="menu-button" onClick={onToggleSidebar} title={t('family.menu')} aria-label={t('family.menu')}>☰</button>
+            {isAdmin && (
+              <>
                 <button
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white shadow-soft transition hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
-                  title={t('family.editTitle')}
+                  className="reset-button"
+                    title={t('family.editTitle')}
                   onClick={() => {
                     const newTitle = prompt('Enter site title', siteTitle) || siteTitle;
                     apiFetch('/api/settings', {
@@ -1109,59 +1080,52 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                       }
                     }).catch(() => alert('Failed to update title'));
                   }}
-                >
-                  {t('family.editTitle')}
-                </button>
-                <label
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-primary-100 bg-white/80 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary-600 shadow-sm transition hover:-translate-y-0.5 hover:border-primary-200 hover:text-primary-800 focus-within:outline-none focus-within:ring-2 focus-within:ring-primary-200"
-                  title={t('family.changeIcon')}
-                >
-                  <input
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) {
-                        e.target.value = '';
-                        return;
-                      }
-                      const uploadIcon = async () => {
-                        try {
-                          const formData = new FormData();
-                          formData.append('image', file);
-                          formData.append('folder', 'site/icons');
-                          const response = await fetch('/api/upload', {
-                            method: 'POST',
-                            headers: { 'x-admin-token': adminToken },
-                            body: formData,
-                          });
-                          if (!response.ok) {
-                            const err = await response.json();
-                            alert(`❌ Failed to upload site icon: ${err.error || 'Unknown error'}`);
-                            e.target.value = '';
-                            return;
-                          }
-                          const result = await response.json();
-                          alert('✅ Site icon uploaded successfully! Refreshing...');
-                          console.log('Upload successful:', result);
-                          window.location.reload();
-                        } catch (error) {
-                          console.error('Icon upload failed:', error);
-                          alert(`❌ Failed to upload site icon: ${error.message}`);
+                >{t('family.editTitle')}</button>
+                <label className="reset-button" title={t('family.changeIcon')} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) {
+                      e.target.value = '';
+                      return;
+                    }
+                    const uploadIcon = async () => {
+                      try {
+                        const formData = new FormData();
+                        formData.append('image', file);
+                        formData.append('folder', 'site/icons');
+                        console.log('Uploading icon with token:', adminToken);
+                        const response = await fetch('/api/upload', {
+                          method: 'POST',
+                          headers: { 'x-admin-token': adminToken },
+                          body: formData,
+                        });
+                        console.log('Upload response status:', response.status);
+                        if (!response.ok) {
+                          const err = await response.json();
+                          console.error('Upload error response:', err);
+                          alert(`❌ Failed to upload site icon: ${err.error || 'Unknown error'}`);
                           e.target.value = '';
+                          return;
                         }
-                      };
-                      uploadIcon();
-                    }}
-                  />
+                        const result = await response.json();
+                        console.log('Upload successful:', result);
+                        alert('✅ Site icon uploaded successfully! Refreshing...');
+                        window.location.reload();
+                      } catch (error) {
+                        console.error('Icon upload failed:', error);
+                        alert(`❌ Failed to upload site icon: ${error.message}`);
+                        e.target.value = '';
+                      }
+                    };
+                    uploadIcon();
+                  }} />
                   {t('family.changeIcon')}
                 </label>
-              </div>
-            ) : null}
+              </>
+            )}
           </div>
         </div>
-      </motion.header>
+      </header>
 
       <div className="tree-canvas-wrapper" ref={canvasWrapperRef}>
         {!readyToRender ? (
@@ -1228,11 +1192,11 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
         {readyToRender ? (
           <>
             <div className="floating-search-panel">
-              <div className="search-container relative w-full max-w-xs sm:max-w-sm">
+              <div className="search-container">
                 <input
                   type="text"
-                  className="search-input w-full rounded-3xl border border-white/60 bg-white/80 px-5 py-3 pr-12 text-sm font-medium text-slate-700 shadow-soft backdrop-blur focus:border-primary-300 focus:ring-4 focus:ring-primary-200/60 focus:outline-none"
-                  placeholder={`${t('family.searchPlaceholder')} | Search family`}
+                  className="search-input"
+                  placeholder={t('family.searchPlaceholder')}
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   onFocus={() => {
@@ -1242,54 +1206,32 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                   lang={language}
                   autoComplete="off"
                 />
-                <span className="search-icon pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-lg">🔍</span>
-                <AnimatePresence>
-                  {showSearchTooltip ? (
-                    <motion.div
-                      key="search-tip"
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      className="search-tooltip mt-3 rounded-2xl bg-slate-900/90 px-4 py-2 text-xs font-semibold text-white shadow-soft"
-                    >
-                      {t('family.searchTip')}
-                      <span className="ml-2 text-[10px] font-normal text-white/70">Find your roots • आपल्या माणसांना शोधा</span>
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
-                <AnimatePresence>
-                  {showSearchResults && searchResults.length > 0 ? (
-                    <motion.div
-                      key="search-results"
-                      initial={{ opacity: 0, y: -10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      className="search-results mt-3 overflow-hidden rounded-3xl border border-white/60 bg-white/90 shadow-soft-xl backdrop-blur-xl"
-                    >
-                      {searchResults.map((member) => (
-                        <motion.button
-                          key={member.id}
-                          type="button"
-                          className="search-result-item group flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-primary-50/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-200"
-                          onClick={() => navigateToMember(member)}
-                          whileHover={{ translateX: 3 }}
-                        >
-                          <div className="result-names flex flex-col items-start gap-1">
-                            <span className="result-name text-sm font-semibold text-slate-800">
-                              {member.name}
-                            </span>
-                            {member.englishName ? (
-                              <span className="result-english-name text-xs italic text-slate-500">{member.englishName}</span>
-                            ) : null}
-                          </div>
-                          <span className="result-gen rounded-full bg-primary-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary-700">
-                            Gen {member.generation}
-                          </span>
-                        </motion.button>
-                      ))}
-                    </motion.div>
-                  ) : null}
-                </AnimatePresence>
+                <span className="search-icon">🔍</span>
+                {showSearchTooltip && (
+                  <div className="search-tooltip">
+                    {t('family.searchTip')}
+                  </div>
+                )}
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="search-results">
+                    {searchResults.map((member) => (
+                      <button
+                        key={member.id}
+                        type="button"
+                        className="search-result-item"
+                        onClick={() => navigateToMember(member)}
+                      >
+                        <div className="result-names">
+                          <span className="result-name">{member.name}</span>
+                          {member.englishName && (
+                            <span className="result-english-name">({member.englishName})</span>
+                          )}
+                        </div>
+                        <span className="result-gen">Gen {member.generation}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             <div className="zoom-control-panel" aria-hidden="false">

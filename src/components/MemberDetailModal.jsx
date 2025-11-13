@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslation } from '../context/LanguageContext.jsx';
 import { apiFetch, resolveImageUrl, uploadImageFile } from '../utils/apiClient.js';
 
@@ -86,10 +85,12 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
     };
   }, [visible, onClose, showAddForm, isEditing, member, editedMember]);
 
-  const shouldRender = Boolean(visible && member);
+  if (!visible || !member) {
+    return null;
+  }
 
-  const imageUrl = member?.notes?.match(/Image:\s*(.*?)(?:\s*\||$)/)?.[1]?.trim();
-  const cleanNotes = member?.notes ? member.notes.replace(/Image:\s*.*?(?:\s*\||$)/g, '').trim() : '';
+  const imageUrl = member.notes?.match(/Image:\s*(.*?)(?:\s*\||$)/)?.[1]?.trim();
+  const cleanNotes = member.notes ? member.notes.replace(/Image:\s*.*?(?:\s*\||$)/g, '').trim() : '';
 
   const getInitials = (name) => {
     if (!name) return '?';
@@ -261,97 +262,64 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
   };
 
   return createPortal(
-    <AnimatePresence>
-      {shouldRender ? (
-        <>
-          {/* AnimatePresence keeps the modal mount/unmount gentle, avoiding jarring flashes while preserving stateful forms. */}
-          <motion.div
-            key="member-modal-overlay"
-            className="modal-overlay flex items-center justify-center bg-slate-900/75 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            onClick={onClose}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <motion.div
-              key="member-modal-card"
-              className="modal-card relative flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-4xl border border-white/40 bg-white/90 shadow-soft-xl backdrop-blur-xl"
-              role="document"
-              onClick={(event) => event.stopPropagation()}
-              initial={{ opacity: 0, scale: 0.92, y: 36 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ duration: 0.28, ease: 'easeOut' }}
+    <div className="modal-overlay" role="dialog" aria-modal="true" onClick={onClose}>
+      <div
+        className="modal-card"
+        role="document"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <button type="button" className="modal-close" onClick={onClose} aria-label="Close modal">
+          ×
+        </button>
+
+        <div className="modal-hero">
+          <div className="avatar-container">
+            <div 
+              className={`avatar-wrapper ${imageUrl ? 'has-image' : ''}`}
+              onClick={() => imageUrl && setShowImagePreview(true)}
+              style={{ cursor: imageUrl ? 'pointer' : 'default' }}
+              title={imageUrl ? 'Click to preview' : ''}
             >
+              {imageUrl ? (
+                <img src={resolveImageUrl(imageUrl)} alt={member.name} />
+              ) : (
+                <span>{getInitials(member.name)}</span>
+              )}
+            </div>
+            {isAdmin && (
+            <label className="upload-image-btn" title="Upload photo">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                style={{ display: 'none' }}
+              />
+              {uploadingImage ? '⏳' : '📷'}
+            </label>
+            )}
+          </div>
+          <h2>{member.name || 'Unknown'}</h2>
+          {(member.englishName && member.englishName.trim()) && (
+            <div className="english-name-subtitle" title="English name">
+              {member.englishName}
+            </div>
+          )}
+          <div className="modal-badge">Generation {member.generation}</div>
+          {isAdmin && (
             <button
               type="button"
-              className="modal-close absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full border border-white/50 bg-white/90 text-2xl font-semibold text-primary-500 shadow-soft transition hover:-translate-y-0.5 hover:text-primary-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
-              onClick={onClose}
-              aria-label="Close modal"
+              className="edit-toggle-btn"
+              onClick={handleEditToggle}
+              title={isEditing ? t('member.modal.cancelEdit') : t('member.modal.editMember')}
             >
-              ×
+              {isEditing ? `✕ ${t('member.modal.cancel')}` : `✎ ${t('member.modal.editButton')}`}
             </button>
+          )}
+        </div>
 
-            <div className="modal-hero relative flex flex-col items-center gap-4 bg-gradient-to-br from-primary-500 via-primary-400 to-brand-400 px-8 pb-12 pt-16 text-white">
-              <div className="avatar-container relative">
-                <div
-                  className={`avatar-wrapper relative overflow-hidden rounded-full border-4 border-white/80 bg-white/10 ${imageUrl ? 'has-image' : ''}`}
-                  onClick={() => imageUrl && setShowImagePreview(true)}
-                  style={{ cursor: imageUrl ? 'pointer' : 'default' }}
-                  title={imageUrl ? 'Click to preview' : ''}
-                >
-                  {imageUrl ? (
-                    <img src={resolveImageUrl(imageUrl)} alt={member.name} className="h-28 w-28 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-28 w-28 items-center justify-center rounded-full bg-white/20 text-3xl font-display">
-                      {getInitials(member?.name)}
-                    </span>
-                  )}
-                </div>
-                {isAdmin && (
-                  <label className="upload-image-btn absolute -bottom-1 -right-1 flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-forest-500 text-lg text-white shadow-lg" title="Upload photo">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      style={{ display: 'none' }}
-                    />
-                    {uploadingImage ? '⏳' : '📷'}
-                  </label>
-                )}
-              </div>
-              <div className="flex flex-col items-center gap-1 text-center">
-                <h2 className="text-2xl font-display font-semibold tracking-wide text-white">
-                  {member?.name || 'Unknown'}
-                </h2>
-                {member?.englishName && member.englishName.trim() ? (
-                  <div className="english-name-subtitle text-sm text-white/85" title="English name">
-                    {member.englishName}
-                  </div>
-                ) : null}
-                <p className="text-sm font-medium text-white/85">कुटुंबाचा इतिहास • Family Heritage</p>
-                <div className="modal-badge rounded-full bg-white/25 px-4 py-1 text-xs font-semibold uppercase tracking-[0.28em] text-white">
-                  Generation {member?.generation}
-                </div>
-              </div>
-              {isAdmin && (
-                <button
-                  type="button"
-                  className="edit-toggle-btn mt-3 inline-flex items-center gap-2 rounded-full border border-white/60 bg-white/25 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-white transition hover:bg-white/35"
-                  onClick={handleEditToggle}
-                  title={isEditing ? t('member.modal.cancelEdit') : t('member.modal.editMember')}
-                >
-                  {isEditing ? `✕ ${t('member.modal.cancel')}` : `✎ ${t('member.modal.editButton')}`}
-                </button>
-              )}
-              <span className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-primary-900/25 to-transparent" aria-hidden="true" />
-            </div>
-
-            <div className="modal-body flex-1 space-y-6 overflow-y-auto px-8 pb-10 pt-8">
-              {isEditing ? (
+        <div className="modal-body">
+          {isEditing ? (
             <form className="edit-member-form" onSubmit={handleSaveEdit}>
               <div className="form-group">
                 <label htmlFor="editName">{t('member.modal.nameLabel')} *</label>
@@ -695,46 +663,29 @@ const MemberDetailModal = ({ visible, member, onClose, onAddChild, onRemoveChild
           )}
             </>
           )}
-            </div>
-          </motion.div>
+        </div>
+      </div>
 
-          </motion.div>
-          {showImagePreview && imageUrl ? (
-            <motion.div
-              key="image-preview"
-              className="image-preview-overlay"
-              onClick={(event) => {
-                event.stopPropagation();
-                setShowImagePreview(false);
-              }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <button
-                type="button"
-                className="preview-close-btn"
-                onClick={() => setShowImagePreview(false)}
-                aria-label="Close preview"
-              >
-                ×
-              </button>
-              <motion.div
-                className="image-preview-container"
-                onClick={(e) => e.stopPropagation()}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2, ease: 'easeOut' }}
-              >
-                <img src={resolveImageUrl(imageUrl)} alt={member?.name} />
-                <p className="image-preview-caption">{member?.name}</p>
-              </motion.div>
-            </motion.div>
-          ) : null}
-        </>
-      ) : null}
-    </AnimatePresence>,
+      {showImagePreview && imageUrl && (
+        <div 
+          className="image-preview-overlay" 
+          onClick={() => setShowImagePreview(false)}
+        >
+          <button 
+            type="button" 
+            className="preview-close-btn" 
+            onClick={() => setShowImagePreview(false)}
+            aria-label="Close preview"
+          >
+            ×
+          </button>
+          <div className="image-preview-container" onClick={(e) => e.stopPropagation()}>
+            <img src={resolveImageUrl(imageUrl)} alt={member.name} />
+            <p className="image-preview-caption">{member.name}</p>
+          </div>
+        </div>
+      )}
+    </div>,
     document.body
   );
 };
