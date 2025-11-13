@@ -1033,9 +1033,9 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
   <header className="tree-header">
         <div>
           <h1>
-            {siteFavicon ? (
+            {
               <img
-                src={resolveImageUrl(siteFavicon)}
+                src={'/site-icon.png'}
                 alt="icon"
                 style={{
                   width: 48,
@@ -1047,7 +1047,7 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                   boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
                 }}
               />
-            ) : null}
+            }
             {siteTitle}
           </h1>
           <p>
@@ -1082,31 +1082,11 @@ const FamilyTree = ({ data, onDataUpdated, isAdmin = false, adminToken = '', onL
                   }}
                 >{t('family.editTitle')}</button>
                 <label className="reset-button" title={t('family.changeIcon')} style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    try {
-                      const { url, timestampedUrl } = await uploadImageFile(file, { token: adminToken, folder: 'site' });
-                      const iconUrl = timestampedUrl || url;
-                      const res = await apiFetch('/api/settings', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-Admin-Token': adminToken },
-                        body: JSON.stringify({ title: siteTitle, faviconDataUrl: iconUrl }),
-                      });
-                      const json = await res.json();
-                      if (res.ok) {
-                        alert('Icon updated');
-                        if (typeof onSettingsUpdated === 'function') onSettingsUpdated();
-                      } else {
-                        alert(json.error || 'Failed to update icon');
-                      }
-                    } catch (err) {
-                      console.error('Icon upload failed:', err);
-                      alert(err.message || 'Failed to upload icon');
-                    }
+                  <input type="file" accept="image/*" style={{ display: 'none' }} onChange={(e) => {
                     e.target.value = '';
+                    alert('Site icon is now a static file. Please replace public/site-icon.png in the source code repository and redeploy.');
                   }} />
-                  {t('family.changeIcon')}
+                  {t('family.changeIcon')} (static)
                 </label>
               </>
             )}

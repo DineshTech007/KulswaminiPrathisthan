@@ -239,10 +239,9 @@ const App = () => {
     if (document && document.title !== title) {
       document.title = title;
     }
-    const setFavicon = (href) => {
-      if (!href) return;
-      // Resolve relative URLs to absolute
-      const resolvedHref = resolveImageUrl(href);
+    const setFavicon = (_href) => {
+      // Always use static frontend asset. Place your icon at public/site-icon.png
+      const resolvedHref = '/site-icon.png';
       // Remove existing icons to avoid conflicts
       const existing = Array.from(document.querySelectorAll('link[rel="icon"], link[rel="shortcut icon"], link[rel="apple-touch-icon"]'));
       existing.forEach((el) => el.parentNode?.removeChild(el));
